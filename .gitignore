@@ -1,0 +1,22 @@
+# Git
+.git/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# PHP sessions
+/sessions/
+
+# Sensitive environment files (keep db.php as it has credentials)
+# If you want to exclude db.php: uncomment below
+# includes/db.php

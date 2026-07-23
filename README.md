@@ -1,0 +1,69 @@
+# Lead Management CRM
+
+A complete, production-quality Lead Management CRM built using PHP, MySQL, Bootstrap 5, HTML5, CSS3, and Vanilla JavaScript. Designed to look like a modern SaaS dashboard.
+
+## Features
+- **Dashboard**: High-level statistics, pipeline progress, and recent leads.
+- **Lead Management**: Full CRUD (Create, Read, Update, Delete) operations for leads.
+- **Search & Filter**: Search leads by name, company, email, phone, and filter by status or priority.
+- **Authentication**: Secure login system using hashed passwords and PHP sessions.
+- **Profile**: Update admin information and change password.
+- **Modern UI**: Clean layout, custom CSS properties, Bootstrap 5 components, and Bootstrap Icons.
+- **Responsive**: Fully responsive design for mobile, tablet, and desktop views.
+
+## Technologies Used
+- **Frontend**: HTML5, CSS3, Bootstrap 5, Vanilla JavaScript (No jQuery).
+- **Backend**: PHP 8+, MySQL (PDO with Prepared Statements).
+- **Icons**: Bootstrap Icons.
+- **Fonts**: Inter (Google Fonts).
+
+## Folder Structure
+```
+lead-management-crm/
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── script.js
+├── includes/
+│   ├── auth.php
+│   ├── config.php
+│   ├── db.php
+│   ├── footer.php
+│   ├── header.php
+│   ├── navbar.php
+│   └── sidebar.php
+├── leads/
+│   ├── add.php
+│   ├── edit.php
+│   ├── list.php
+│   └── view.php
+├── dashboard.php
+├── database.sql
+├── index.php
+├── login.php
+├── logout.php
+├── profile.php
+└── README.md
+```
+
+## Installation Steps
+1. **Clone or Download** the repository to your local server (e.g., inside `C:\xampp\htdocs\CRM-Lead-Tracker`).
+2. **Database Setup**:
+   - Open phpMyAdmin (e.g., `http://localhost/phpmyadmin`).
+   - Import the `database.sql` file provided in the root directory. This will create the `crm_lead_tracker` database, tables, and insert default data.
+3. **Database Configuration**:
+   - Open `includes/db.php`.
+   - Ensure the database credentials match your local setup. The default expects a `root` user with the password `MyNewPass123`.
+4. **Access the CRM**:
+   - Open your browser and navigate to `http://localhost/CRM-Lead-Tracker`.
+
+## Default Login Credentials
+- **Email**: admin@example.com
+- **Password**: admin123
+
+## Security Implemented
+- **Password Hashing**: Uses PHP's `password_hash()` and `password_verify()`.
+- **SQL Injection Prevention**: Uses PDO prepared statements for all database queries.
+- **Session Protection**: Validates session presence on all protected pages.
+- **XSS Protection**: Uses `htmlspecialchars()` when outputting user data.
