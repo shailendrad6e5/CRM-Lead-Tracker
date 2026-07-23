@@ -12,6 +12,15 @@ if (!isset($_GET['id'])) {
 
 $id = $_GET['id'];
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
+    $newStatus = $_POST['quick_status'];
+    $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
+    $updateStmt->execute([$newStatus, $id]);
+    $_SESSION['success'] = "Lead marked as $newStatus.";
+    header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
+    exit;
+}
+
 $stmt = $pdo->prepare("
     SELECT l.*, u.name as assigned_name 
     FROM leads l 
@@ -45,11 +54,23 @@ include '../includes/header.php';
         <a href="<?= BASE_URL ?>/leads/list.php" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Back
         </a>
-        <a href="<?= BASE_URL ?>/leads/edit.php?id=<?= $lead['id'] ?>" class="btn btn-primary">
-            <i class="bi bi-pencil me-2"></i>Edit Lead
+        <?php if($lead['status'] !== 'Won'): ?>
+        <form method="POST" class="d-inline">
+            <input type="hidden" name="quick_status" value="Won">
+            <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-2"></i>Mark Won</button>
+        </form>
+        <?php endif; ?>
+        <?php if($lead['status'] !== 'Lost'): ?>
+        <form method="POST" class="d-inline">
+            <input type="hidden" name="quick_status" value="Lost">
+            <button type="submit" class="btn btn-sm btn-secondary"><i class="bi bi-x-circle me-2"></i>Mark Lost</button>
+        </form>
+        <?php endif; ?>
+        <a href="<?= BASE_URL ?>/leads/edit.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-primary">
+            <i class="bi bi-pencil me-2"></i>Edit
         </a>
-        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $lead['id'] ?>" data-url="<?= BASE_URL ?>/leads/list.php">
-            <i class="bi bi-trash me-2"></i>Delete
+        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $lead['id'] ?>" data-url="<?= BASE_URL ?>/leads/list.php">
+            <i class="bi bi-trash"></i>
         </button>
     </div>
 </div>

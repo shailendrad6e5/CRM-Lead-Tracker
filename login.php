@@ -95,6 +95,12 @@ $pageTitle = 'Login';
             
             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Sign In <i class="bi bi-box-arrow-in-right ms-2"></i></button>
         </form>
+        
+        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='admin123';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
+            <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Demo Credentials (Click to auto-fill)</p>
+            <div>Email: <span class="fw-medium text-dark">admin@example.com</span></div>
+            <div>Password: <span class="fw-medium text-dark">admin123</span></div>
+        </div>
     </div>
 
     <!-- Bootstrap 5 Bundle JS -->
