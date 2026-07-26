@@ -83,6 +83,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const forms = document.querySelectorAll('.needs-validation');
     Array.prototype.slice.call(forms).forEach(function (form) {
         form.addEventListener('submit', function (event) {
+            // Custom password matching validation
+            const pwd = form.querySelector('input[name="password"]') || form.querySelector('input[name="new_password"]');
+            const confirmPwd = form.querySelector('input[name="confirm_password"]');
+            
+            if (pwd && confirmPwd) {
+                if (pwd.value !== confirmPwd.value) {
+                    confirmPwd.setCustomValidity("Passwords do not match");
+                } else {
+                    confirmPwd.setCustomValidity("");
+                }
+            }
+
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();

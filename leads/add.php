@@ -8,15 +8,24 @@ requireLogin();
 $pageTitle = 'Add Lead';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name']);
-    $company = trim($_POST['company']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $source = $_POST['source'];
-    $status = $_POST['status'];
-    $priority = $_POST['priority'];
-    $notes = trim($_POST['notes']);
+    $name = trim($_POST['name'] ?? '');
+    $company = trim($_POST['company'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $source = $_POST['source'] ?? '';
+    $status = $_POST['status'] ?? '';
+    $priority = $_POST['priority'] ?? '';
+    $notes = trim($_POST['notes'] ?? '');
     $assigned_to = $_SESSION['user_id'];
+
+    // Enum validation
+    $valid_statuses = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+    $valid_priorities = ['Low', 'Medium', 'High'];
+    $valid_sources = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+
+    if (!in_array($status, $valid_statuses)) $status = 'New';
+    if (!in_array($priority, $valid_priorities)) $priority = 'Medium';
+    if (!in_array($source, $valid_sources)) $source = 'Other';
 
     if (empty($name)) {
         $_SESSION['error'] = "Name is required.";

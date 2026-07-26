@@ -24,14 +24,23 @@ if (!$lead) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name']);
-    $company = trim($_POST['company']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $source = $_POST['source'];
-    $status = $_POST['status'];
-    $priority = $_POST['priority'];
-    $notes = trim($_POST['notes']);
+    $name = trim($_POST['name'] ?? '');
+    $company = trim($_POST['company'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $source = $_POST['source'] ?? '';
+    $status = $_POST['status'] ?? '';
+    $priority = $_POST['priority'] ?? '';
+    $notes = trim($_POST['notes'] ?? '');
+
+    // Enum validation
+    $valid_statuses = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+    $valid_priorities = ['Low', 'Medium', 'High'];
+    $valid_sources = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+
+    if (!in_array($status, $valid_statuses)) $status = $lead['status'];
+    if (!in_array($priority, $valid_priorities)) $priority = $lead['priority'];
+    if (!in_array($source, $valid_sources)) $source = $lead['source'];
 
     if (empty($name)) {
         $_SESSION['error'] = "Name is required.";
