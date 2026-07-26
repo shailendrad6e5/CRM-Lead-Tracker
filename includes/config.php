@@ -1,6 +1,10 @@
 <?php
 // CRM Lead Tracker - Global Configuration
 
+define('SITE_TITLE', 'Lead Management CRM');
+
+
+
 // Base URL for the application
 define('BASE_URL', 'http://crmleadtracker.free.nf');
 
