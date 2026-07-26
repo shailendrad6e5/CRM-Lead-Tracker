@@ -272,13 +272,13 @@ include '../includes/header.php';
                 <div class="timeline">
                     <?php foreach($activities as $act): ?>
                     <?php
-                        $icon  = match($act['action']) {
+                        $iconMap = [
                             'created'        => 'bi-plus-circle-fill text-success',
                             'edited'         => 'bi-pencil-fill text-warning',
                             'status_changed' => 'bi-arrow-repeat text-info',
-                            'note_added'     => 'bi-chat-fill text-primary',
-                            default          => 'bi-circle-fill text-secondary',
-                        };
+                            'note_added'     => 'bi-chat-fill text-primary'
+                        ];
+                        $icon = $iconMap[$act['action']] ?? 'bi-circle-fill text-secondary';
                     ?>
                     <div class="d-flex gap-3 mb-3">
                         <div class="flex-shrink-0 mt-1">

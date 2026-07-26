@@ -5,40 +5,40 @@
  * Returns the CSS badge class for a lead status.
  */
 function getStatusBadgeClass(string $status): string {
-    return match($status) {
+    $map = [
         'New'           => 'status-new',
         'Contacted'     => 'status-contacted',
         'Qualified'     => 'status-qualified',
         'Proposal Sent' => 'status-proposal',
         'Won'           => 'status-won',
         'Lost'          => 'status-lost',
-        default         => 'bg-secondary',
-    };
+    ];
+    return $map[$status] ?? 'bg-secondary';
 }
 
 /**
  * Returns the CSS badge class for a lead priority.
  */
 function getPriorityBadgeClass(string $priority): string {
-    return match($priority) {
+    $map = [
         'High'   => 'priority-high',
         'Medium' => 'priority-medium',
         'Low'    => 'priority-low',
-        default  => 'bg-secondary',
-    };
+    ];
+    return $map[$priority] ?? 'bg-secondary';
 }
 
 /**
  * Returns a Bootstrap icon class for a lead source.
  */
 function getSourceIcon(string $source): string {
-    return match($source) {
+    $map = [
         'Website'        => 'bi-globe',
         'Referral'       => 'bi-people',
         'Cold Call'      => 'bi-telephone-outbound',
         'Email Campaign' => 'bi-envelope-at',
-        default          => 'bi-three-dots',
-    };
+    ];
+    return $map[$source] ?? 'bi-three-dots';
 }
 
 /**
