@@ -48,6 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($name)) {
         $_SESSION['error'] = "Name is required.";
+    } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['error'] = "Invalid email format.";
     } else {
         $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=?, followup_date=?, followup_notes=? WHERE id=? AND assigned_to=?");
         if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $followup_date, $followup_notes, $id, $_SESSION['user_id']])) {

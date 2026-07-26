@@ -50,8 +50,16 @@ fwrite($out, "\xEF\xBB\xBF");
 fputcsv($out, ['Name', 'Company', 'Email', 'Phone', 'Source', 'Status', 'Priority', 'Notes', 'Follow-up Date', 'Follow-up Notes', 'Created At']);
 
 // Data rows
+function preventCsvInjection($field) {
+    $field = (string)$field;
+    if (in_array(substr($field, 0, 1), ['=', '+', '-', '@'], true)) {
+        return "'" . $field;
+    }
+    return $field;
+}
+
 foreach ($leads as $row) {
-    fputcsv($out, [
+    $rowData = [
         $row['name'],
         $row['company']       ?? '',
         $row['email']         ?? '',
@@ -63,7 +71,9 @@ foreach ($leads as $row) {
         $row['followup_date'] ?? '',
         $row['followup_notes']?? '',
         $row['created_at'],
-    ]);
+    ];
+    $sanitizedRow = array_map('preventCsvInjection', $rowData);
+    fputcsv($out, $sanitizedRow);
 }
 
 fclose($out);

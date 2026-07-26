@@ -68,7 +68,7 @@ $notes = [];
 try {
     $nStmt = $pdo->prepare("SELECT ln.*, u.name as author FROM lead_notes ln JOIN users u ON ln.user_id=u.id WHERE ln.lead_id=? ORDER BY ln.created_at DESC");
     $nStmt->execute([$id]);
-    $notes = $nStmt->fetchAll();
+    $notes = $nStmt->fetchAll() ?: [];
 } catch (Exception $e) {}
 
 // ── Fetch Timeline ────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ $activities = [];
 try {
     $aStmt = $pdo->prepare("SELECT la.*, u.name as actor FROM lead_activities la JOIN users u ON la.user_id=u.id WHERE la.lead_id=? ORDER BY la.created_at DESC LIMIT 20");
     $aStmt->execute([$id]);
-    $activities = $aStmt->fetchAll();
+    $activities = $aStmt->fetchAll() ?: [];
 } catch (Exception $e) {}
 
 $pageTitle = htmlspecialchars($lead['name']);
@@ -125,7 +125,7 @@ include '../includes/header.php';
                     <i class="bi bi-person fs-1"></i>
                 </div>
                 <h3 class="h4 mb-1 fw-bold"><?= htmlspecialchars($lead['name']) ?></h3>
-                <p class="text-muted mb-3"><i class="bi bi-building me-2"></i><?= htmlspecialchars($lead['company'] ?? 'No Company') ?></p>
+                <p class="text-muted mb-3"><i class="bi bi-building me-2"></i><?= htmlspecialchars(!empty($lead['company']) ? $lead['company'] : 'No Company') ?></p>
                 <div class="d-flex justify-content-center gap-2 mb-3">
                     <span class="badge <?= getStatusBadgeClass($lead['status']) ?> px-3 py-2"><?= $lead['status'] ?></span>
                     <span class="badge <?= getPriorityBadgeClass($lead['priority']) ?> px-3 py-2"><?= $lead['priority'] ?> Priority</span>

@@ -80,7 +80,7 @@ include 'includes/header.php';
             <div class="card-body">
                 <div class="position-relative d-inline-block mb-3">
                     <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
-                        <span class="display-3"><?= strtoupper(substr($user['name'], 0, 1)) ?></span>
+                        <span class="display-3"><?= !empty($user['name']) ? strtoupper(substr($user['name'], 0, 1)) : 'U' ?></span>
                     </div>
                     <button class="btn btn-sm btn-light position-absolute bottom-0 end-0 rounded-circle shadow border" title="Change Photo">
                         <i class="bi bi-camera"></i>
