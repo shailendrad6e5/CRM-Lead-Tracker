@@ -30,6 +30,11 @@
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js (loaded only when needed) -->
+    <?php if (isset($loadCharts) && $loadCharts): ?>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <?php endif; ?>
     
     <!-- Custom JS -->
     <script src="<?= BASE_URL ?>/assets/js/script.js"></script>

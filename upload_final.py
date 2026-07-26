@@ -1,6 +1,9 @@
 import ftplib, sys, os
 FTP_HOST="ftpupload.net"; FTP_USER="if0_42492907"; FTP_PASS="ZWCaZdMosYFD"
-files=[("leads/list.php","/htdocs/leads/list.php")]
+files=[
+    ("dashboard.php","/htdocs/dashboard.php"),
+    ("includes/footer.php","/htdocs/includes/footer.php"),
+]
 try:
     ftp=ftplib.FTP(FTP_HOST,FTP_USER,FTP_PASS,timeout=30)
     for lp,rp in files:
