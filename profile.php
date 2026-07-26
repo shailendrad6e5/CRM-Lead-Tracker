@@ -128,19 +128,31 @@ include 'includes/header.php';
                 <form method="POST" action="" class="needs-validation" novalidate>
                     <div class="mb-3">
                         <label for="current_password" class="form-label">Current Password</label>
-                        <input type="password" class="form-control" id="current_password" name="current_password" required>
-                        <div class="invalid-feedback">Current password is required.</div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-shield-lock"></i></span>
+                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                            <div class="invalid-feedback">Current password is required.</div>
+                        </div>
                     </div>
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="new_password" class="form-label">New Password</label>
-                            <input type="password" class="form-control" id="new_password" name="new_password" required>
-                            <div class="invalid-feedback">New password is required.</div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                                <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                                <div class="invalid-feedback">New password is required.</div>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label for="confirm_password" class="form-label">Confirm New Password</label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                            <div class="invalid-feedback">Please confirm your new password.</div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-check-circle"></i></span>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                                <div class="invalid-feedback">Please confirm your new password.</div>
+                            </div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-end">
