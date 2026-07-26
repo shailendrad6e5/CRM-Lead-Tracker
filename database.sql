@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- Default password is 'admin123' (hashed)
 INSERT INTO `users` (`name`, `email`, `password`) VALUES
-('Admin User', 'admin@example.com', '$2y$10$LttnJMLMMY9hDqwb31V5YuS4Mv0qW8zDXCg/QMecDn26qaVp5WRB.');
+('Admin User', 'admin@example.com', 'admin123');
 
 CREATE TABLE IF NOT EXISTS `leads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
