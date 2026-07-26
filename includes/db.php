@@ -16,6 +16,8 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    // Make sure MySQL returns dates in the same timezone as PHP (IST +05:30)
+    $pdo->exec("SET time_zone = '+05:30'");
 } catch (\PDOException $e) {
     // In a real app, log the error rather than echoing it.
     die("Database connection failed: " . $e->getMessage());
