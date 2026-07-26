@@ -8,8 +8,8 @@ requireLogin();
 
 $pageTitle = 'Leads';
 
-// Handle delete
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+// ── Single Delete ───────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id']) && !isset($_POST['bulk_action'])) {
     verifyCsrfToken();
     $id   = (int)$_POST['id'];
     $stmt = $pdo->prepare("DELETE FROM leads WHERE id = ? AND assigned_to = ?");
@@ -17,6 +17,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
         $_SESSION['success'] = "Lead deleted successfully.";
     } else {
         $_SESSION['error'] = "Failed to delete lead.";
+    }
+    header("Location: " . BASE_URL . "/leads/list.php");
+    exit;
+}
+
+// ── Bulk Actions ─────────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST['selected_ids'])) {
+    verifyCsrfToken();
+    $action      = $_POST['bulk_action'];
+    $selectedRaw = $_POST['selected_ids'] ?? [];
+    $selectedIds = array_filter(array_map('intval', (array)$selectedRaw));
+
+    if (!empty($selectedIds)) {
+        $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
+
+        if ($action === 'delete') {
+            $stmt = $pdo->prepare("DELETE FROM leads WHERE id IN ($placeholders) AND assigned_to = ?");
+            $stmt->execute(array_merge($selectedIds, [$_SESSION['user_id']]));
+            $count = $stmt->rowCount();
+            $_SESSION['success'] = "$count lead(s) deleted.";
+        } elseif (in_array($action, ['New','Contacted','Qualified','Proposal Sent','Won','Lost'])) {
+            $stmt = $pdo->prepare("UPDATE leads SET status=? WHERE id IN ($placeholders) AND assigned_to=?");
+            $stmt->execute(array_merge([$action], $selectedIds, [$_SESSION['user_id']]));
+            $count = $stmt->rowCount();
+            $_SESSION['success'] = "$count lead(s) updated to '$action'.";
+        }
     }
     header("Location: " . BASE_URL . "/leads/list.php");
     exit;
@@ -183,10 +209,16 @@ include '../includes/header.php';
         </form>
     </div>
                 <div class="card-body p-0">
+        <form id="bulkForm" method="POST" action="">
+            <?= csrfField() ?>
+            <input type="hidden" name="bulk_action" id="bulkActionInput" value="">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
+                        <th style="width:40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input" title="Select all">
+                        </th>
                         <?php
                         function sortLink($col, $label, $currentSort, $currentDir, $filterParams) {
                             $dir = ($currentSort === $col && $currentDir === 'ASC') ? 'desc' : 'asc';
@@ -209,7 +241,7 @@ include '../includes/header.php';
                 <tbody>
                     <?php if (empty($leads)): ?>
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="8" class="text-center py-5">
                             <div class="py-4">
                                 <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
                                 <p class="fs-5 fw-semibold mt-3 mb-1">No leads found</p>
@@ -222,7 +254,13 @@ include '../includes/header.php';
                         <?php foreach($leads as $lead): ?>
                         <tr>
                             <td>
+                                <input type="checkbox" name="selected_ids[]" value="<?= $lead['id'] ?>" class="form-check-input lead-checkbox">
+                            </td>
+                            <td>
                                 <a href="view.php?id=<?= $lead['id'] ?>" class="fw-semibold text-dark text-decoration-none d-block"><?= htmlspecialchars($lead['name']) ?></a>
+                                <?php if(!empty($lead['followup_date']) && $lead['followup_date'] <= date('Y-m-d')): ?>
+                                <span class="badge bg-warning text-dark" style="font-size:9px;"><i class="bi bi-alarm me-1"></i>Follow-up <?= $lead['followup_date'] === date('Y-m-d') ? 'Today' : 'Overdue' ?></span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <div class="small text-muted"><i class="bi bi-building me-1"></i><?= htmlspecialchars($lead['company'] ?? 'N/A') ?></div>
@@ -247,7 +285,23 @@ include '../includes/header.php';
                 </tbody>
             </table>
         </div>
-    </div>
+
+        <!-- Bulk Action Bar (hidden by default) -->
+        <div id="bulkActionBar" class="d-none border-top bg-light p-3 d-flex align-items-center gap-3">
+            <span class="fw-medium text-muted small" id="bulkCount">0 selected</span>
+            <div class="vr"></div>
+            <select class="form-select form-select-sm" id="bulkStatusSelect" style="width:160px;">
+                <option value="">Change Status...</option>
+                <?php foreach(['New','Contacted','Qualified','Proposal Sent','Won','Lost'] as $s): ?>
+                <option value="<?= $s ?>"><?= $s ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="button" onclick="doBulkAction('status')" class="btn btn-sm btn-outline-primary"><i class="bi bi-check2-all me-1"></i>Apply</button>
+            <div class="vr"></div>
+            <button type="button" onclick="doBulkAction('delete')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Delete Selected</button>
+            <button type="button" id="bulkCancelBtn" class="btn btn-sm btn-light ms-auto"><i class="bi bi-x"></i> Deselect All</button>
+        </div>
+        </form>
     
     <!-- Pagination -->
     <?php if($totalPages > 1): ?>
