@@ -1,10 +1,23 @@
 <?php
 require_once 'config.php';
 
-$host = 'localhost';
-$db   = 'crm_lead_tracker';
-$user = 'root';
-$pass = 'MyNewPass123';
+// Database configuration
+
+// Check if running locally or on the live server
+if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1')) {
+    // Local XAMPP Credentials
+    $host = 'localhost';
+    $db   = 'crm_lead_tracker';
+    $user = 'root';
+    $pass = '';
+} else {
+    // InfinityFree Live Server Credentials
+    $host = 'sql101.infinityfree.com';
+    $db   = 'if0_42492907_crm_db';
+    $user = 'if0_42492907';
+    $pass = 'ZWCaZdMosYFD';
+}
+
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
