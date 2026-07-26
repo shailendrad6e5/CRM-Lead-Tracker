@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "All password fields are required.";
         } elseif ($new_password !== $confirm_password) {
             $_SESSION['error'] = "New passwords do not match.";
-        } elseif ($current_password !== $user['password']) {
+        } elseif (!password_verify($current_password, $user['password']) && $current_password !== $user['password']) {
             $_SESSION['error'] = "Current password is incorrect.";
         } else {
             $passStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
