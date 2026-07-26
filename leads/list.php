@@ -105,9 +105,14 @@ include '../includes/header.php';
         <h1 class="h3 mb-0 text-gray-800">Leads</h1>
         <p class="text-muted small mb-0">Manage and track your potential customers</p>
     </div>
-    <a href="add.php" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-2"></i>Add Lead
-    </a>
+    <div class="d-flex gap-2">
+        <a href="export.php?<?= htmlspecialchars($filterParams) ?>" class="btn btn-outline-success">
+            <i class="bi bi-download me-2"></i>Export CSV
+        </a>
+        <a href="add.php" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Add Lead
+        </a>
+    </div>
 </div>
 
 <div class="card p-0 mb-4">

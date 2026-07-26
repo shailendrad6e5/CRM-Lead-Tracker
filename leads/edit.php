@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
+require_once '../includes/helpers.php';
 
 requireLogin();
 
@@ -25,29 +26,39 @@ if (!$lead) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrfToken();
-    $name = trim($_POST['name'] ?? '');
-    $company = trim($_POST['company'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $source = $_POST['source'] ?? '';
-    $status = $_POST['status'] ?? '';
-    $priority = $_POST['priority'] ?? '';
-    $notes = trim($_POST['notes'] ?? '');
+    $name           = trim($_POST['name'] ?? '');
+    $company        = trim($_POST['company'] ?? '');
+    $email          = trim($_POST['email'] ?? '');
+    $phone          = trim($_POST['phone'] ?? '');
+    $source         = $_POST['source'] ?? '';
+    $status         = $_POST['status'] ?? '';
+    $priority       = $_POST['priority'] ?? '';
+    $notes          = trim($_POST['notes'] ?? '');
+    $followup_date  = !empty($_POST['followup_date'])  ? $_POST['followup_date']  : null;
+    $followup_notes = trim($_POST['followup_notes'] ?? '');
 
     // Enum validation
-    $valid_statuses = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
-    $valid_priorities = ['Low', 'Medium', 'High'];
-    $valid_sources = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+    $valid_statuses  = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+    $valid_priorities= ['Low', 'Medium', 'High'];
+    $valid_sources   = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
 
-    if (!in_array($status, $valid_statuses)) $status = $lead['status'];
+    if (!in_array($status,   $valid_statuses))  $status   = $lead['status'];
     if (!in_array($priority, $valid_priorities)) $priority = $lead['priority'];
-    if (!in_array($source, $valid_sources)) $source = $lead['source'];
+    if (!in_array($source,   $valid_sources))   $source   = $lead['source'];
 
     if (empty($name)) {
         $_SESSION['error'] = "Name is required.";
     } else {
-        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=? WHERE id=? AND assigned_to=?");
-        if($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $id, $_SESSION['user_id']])) {
+        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=?, followup_date=?, followup_notes=? WHERE id=? AND assigned_to=?");
+        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $followup_date, $followup_notes, $id, $_SESSION['user_id']])) {
+            // Build activity description
+            $changes = [];
+            if ($lead['status']   !== $status)   $changes[] = "Status changed from {$lead['status']} to {$status}";
+            if ($lead['priority'] !== $priority)  $changes[] = "Priority changed from {$lead['priority']} to {$priority}";
+            if ($lead['name']     !== $name)      $changes[] = "Name updated";
+            $desc = !empty($changes) ? implode('; ', $changes) : 'Lead details updated';
+            logLeadActivity($pdo, $id, $_SESSION['user_id'], 'edited', $desc);
+
             $_SESSION['success'] = "Lead updated successfully.";
             header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
             exit;
@@ -163,7 +174,19 @@ include '../includes/header.php';
 
                     <div class="mb-4">
                         <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="4" maxlength="500"><?= htmlspecialchars($lead['notes'] ?? '') ?></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" maxlength="500"><?= htmlspecialchars($lead['notes'] ?? '') ?></textarea>
+                    </div>
+
+                    <h5 class="mb-4 text-primary border-bottom pb-2 mt-4"><i class="bi bi-calendar-check me-2"></i>Follow-up</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="followup_date" class="form-label">Follow-up Date</label>
+                            <input type="date" class="form-control" id="followup_date" name="followup_date" value="<?= htmlspecialchars($lead['followup_date'] ?? '') ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="followup_notes" class="form-label">Follow-up Notes</label>
+                            <input type="text" class="form-control" id="followup_notes" name="followup_notes" value="<?= htmlspecialchars($lead['followup_notes'] ?? '') ?>" placeholder="What to discuss?">
+                        </div>
                     </div>
 
                     <hr class="my-4">

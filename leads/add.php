@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
+require_once '../includes/helpers.php';
 
 requireLogin();
 
@@ -9,32 +10,36 @@ $pageTitle = 'Add Lead';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrfToken();
-    $name = trim($_POST['name'] ?? '');
-    $company = trim($_POST['company'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $source = $_POST['source'] ?? '';
-    $status = $_POST['status'] ?? '';
-    $priority = $_POST['priority'] ?? '';
-    $notes = trim($_POST['notes'] ?? '');
+    $name        = trim($_POST['name'] ?? '');
+    $company     = trim($_POST['company'] ?? '');
+    $email       = trim($_POST['email'] ?? '');
+    $phone       = trim($_POST['phone'] ?? '');
+    $source      = $_POST['source'] ?? '';
+    $status      = $_POST['status'] ?? '';
+    $priority    = $_POST['priority'] ?? '';
+    $notes       = trim($_POST['notes'] ?? '');
+    $followup_date  = !empty($_POST['followup_date'])  ? $_POST['followup_date']  : null;
+    $followup_notes = trim($_POST['followup_notes'] ?? '');
     $assigned_to = $_SESSION['user_id'];
 
     // Enum validation
-    $valid_statuses = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
-    $valid_priorities = ['Low', 'Medium', 'High'];
-    $valid_sources = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+    $valid_statuses  = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+    $valid_priorities= ['Low', 'Medium', 'High'];
+    $valid_sources   = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
 
-    if (!in_array($status, $valid_statuses)) $status = 'New';
+    if (!in_array($status,   $valid_statuses))  $status   = 'New';
     if (!in_array($priority, $valid_priorities)) $priority = 'Medium';
-    if (!in_array($source, $valid_sources)) $source = 'Other';
+    if (!in_array($source,   $valid_sources))   $source   = 'Other';
 
     if (empty($name)) {
         $_SESSION['error'] = "Name is required.";
     } else {
-        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        if($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $notes])) {
+        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, notes, followup_date, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $notes, $followup_date, $followup_notes])) {
+            $newId = $pdo->lastInsertId();
+            logLeadActivity($pdo, $newId, $assigned_to, 'created', "Lead created: $name ($company)");
             $_SESSION['success'] = "Lead added successfully.";
-            header("Location: " . BASE_URL . "/leads/list.php");
+            header("Location: " . BASE_URL . "/leads/view.php?id=" . $newId);
             exit;
         } else {
             $_SESSION['error'] = "Failed to add lead.";
@@ -140,7 +145,19 @@ include '../includes/header.php';
 
                     <div class="mb-4">
                         <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="4" maxlength="500" placeholder="Add any additional details here..."></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" maxlength="500" placeholder="Add any additional details here..."></textarea>
+                    </div>
+
+                    <h5 class="mb-4 text-primary border-bottom pb-2 mt-4"><i class="bi bi-calendar-check me-2"></i>Follow-up</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="followup_date" class="form-label">Follow-up Date</label>
+                            <input type="date" class="form-control" id="followup_date" name="followup_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="followup_notes" class="form-label">Follow-up Notes</label>
+                            <input type="text" class="form-control" id="followup_notes" name="followup_notes" placeholder="What to discuss?">
+                        </div>
                     </div>
 
                     <hr class="my-4">
