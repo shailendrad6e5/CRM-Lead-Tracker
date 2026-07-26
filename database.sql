@@ -16,7 +16,7 @@ INSERT INTO `users` (`name`, `email`, `password`) VALUES
 ('Admin User', 'admin@example.com', 'admin123');
 
 CREATE TABLE IF NOT EXISTS `leads` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` 
   `name` varchar(100) NOT NULL,
   `company` varchar(100) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
@@ -36,3 +36,4 @@ CREATE TABLE IF NOT EXISTS `leads` (
 INSERT INTO `leads` (`name`, `company`, `email`, `phone`, `source`, `status`, `priority`, `assigned_to`, `notes`) VALUES
 ('John Doe', 'Acme Corp', 'john@acme.com', '123-456-7890', 'Website', 'New', 'High', 1, 'Initial contact from website.'),
 ('Jane Smith', 'Tech Solutions', 'jane@techsolutions.com', '098-765-4321', 'Referral', 'Contacted', 'Medium', 1, 'Looking for our CRM product.');
+int(11) NOT NULL AUTO_INCREMENT,

@@ -4,18 +4,23 @@ document.addEventListener("DOMContentLoaded", function () {
     const sidebarCollapseBtn = document.getElementById("sidebarCollapseBtn");
     const sidebar = document.getElementById("sidebar");
 
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+    function toggleSidebar() {
+        sidebar.classList.toggle("show");
+        if (sidebarOverlay) sidebarOverlay.classList.toggle("show");
+    }
+
     if (sidebarCollapse && sidebar) {
-        sidebarCollapse.addEventListener("click", function () {
-            sidebar.classList.toggle("d-none");
-            sidebar.classList.toggle("position-absolute");
-        });
+        sidebarCollapse.addEventListener("click", toggleSidebar);
     }
 
     if (sidebarCollapseBtn && sidebar) {
-        sidebarCollapseBtn.addEventListener("click", function () {
-            sidebar.classList.add("d-none");
-            sidebar.classList.remove("position-absolute");
-        });
+        sidebarCollapseBtn.addEventListener("click", toggleSidebar);
+    }
+    
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener("click", toggleSidebar);
     }
 
     // Initialize Toasts

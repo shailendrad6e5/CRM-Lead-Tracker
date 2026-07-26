@@ -47,6 +47,7 @@
     </div>
 
     <?php if (isLoggedIn()): ?>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="d-flex wrapper">
         <!-- Sidebar -->
         <?php include 'sidebar.php'; ?>

@@ -202,3 +202,38 @@ label {
     -webkit-box-orient: vertical;  
     overflow: hidden;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 767.98px) {
+    #sidebar {
+        position: fixed !important;
+        top: 0;
+        left: -260px;
+        height: 100vh;
+        z-index: 1045;
+        transition: left 0.3s ease-in-out;
+        box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+        width: 260px;
+    }
+    #sidebar.show {
+        left: 0;
+    }
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.4);
+        z-index: 1040;
+        display: none;
+        backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.show {
+        display: block;
+    }
+    .auth-card {
+        padding: 24px;
+        margin: 16px;
+    }
+}
