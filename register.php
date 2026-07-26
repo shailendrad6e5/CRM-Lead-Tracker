@@ -11,13 +11,17 @@ if (isLoggedIn()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    verifyCsrfToken();
+
+    $name             = trim($_POST['name'] ?? '');
+    $email            = trim($_POST['email'] ?? '');
+    $password         = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
     if (empty($name) || empty($email) || empty($password)) {
         $error = 'Please fill in all fields.';
+    } elseif (strlen($password) < 6) {
+        $error = 'Password must be at least 6 characters.';
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match.';
     } else {
@@ -27,11 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetch()) {
             $error = 'Email is already registered.';
         } else {
-            // Insert new user with plain text password
+            // Store password securely with bcrypt
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
             $insertStmt = $pdo->prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
-            if ($insertStmt->execute([$name, $email, $password])) {
+            if ($insertStmt->execute([$name, $email, $hashed])) {
                 $user_id = $pdo->lastInsertId();
-                $_SESSION['user_id'] = $user_id;
+                session_regenerate_id(true);
+                $_SESSION['user_id']   = $user_id;
                 $_SESSION['user_name'] = $name;
                 header('Location: ' . BASE_URL . '/dashboard.php');
                 exit;
@@ -73,6 +79,7 @@ $pageTitle = 'Register';
         <?php endif; ?>
 
         <form method="POST" action="" class="needs-validation" novalidate>
+            <?= csrfField() ?>
             <div class="mb-3">
                 <label for="name" class="form-label">Full Name</label>
                 <div class="input-group">

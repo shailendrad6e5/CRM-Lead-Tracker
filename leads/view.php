@@ -13,7 +13,8 @@ if (!isset($_GET['id'])) {
 $id = $_GET['id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
-    $newStatus = $_POST['quick_status'];
+    verifyCsrfToken();
+    $newStatus  = $_POST['quick_status'];
     $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ? AND assigned_to = ?");
     $updateStmt->execute([$newStatus, $id, $_SESSION['user_id']]);
     $_SESSION['success'] = "Lead marked as $newStatus.";
@@ -56,12 +57,14 @@ include '../includes/header.php';
         </a>
         <?php if($lead['status'] !== 'Won'): ?>
         <form method="POST" class="d-inline">
+            <?= csrfField() ?>
             <input type="hidden" name="quick_status" value="Won">
             <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-2"></i>Mark Won</button>
         </form>
         <?php endif; ?>
         <?php if($lead['status'] !== 'Lost'): ?>
         <form method="POST" class="d-inline">
+            <?= csrfField() ?>
             <input type="hidden" name="quick_status" value="Lost">
             <button type="submit" class="btn btn-sm btn-secondary"><i class="bi bi-x-circle me-2"></i>Mark Lost</button>
         </form>

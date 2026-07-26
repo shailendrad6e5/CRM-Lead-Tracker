@@ -24,6 +24,7 @@ if (!$lead) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrfToken();
     $name = trim($_POST['name'] ?? '');
     $company = trim($_POST['company'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -80,6 +81,7 @@ include '../includes/header.php';
         <div class="card shadow-sm">
             <div class="card-body">
                 <form method="POST" action="" class="needs-validation" novalidate>
+                    <?= csrfField() ?>
                     <h5 class="mb-4 text-primary border-bottom pb-2"><i class="bi bi-person-lines-fill me-2"></i>Contact Information</h5>
                     
                     <div class="row mb-3">

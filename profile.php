@@ -14,10 +14,12 @@ $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
+    verifyCsrfToken();
+
+    $name             = trim($_POST['name'] ?? '');
+    $email            = trim($_POST['email'] ?? '');
     $current_password = $_POST['current_password'] ?? '';
-    $new_password = $_POST['new_password'] ?? '';
+    $new_password     = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
     // Update Profile Info
@@ -29,8 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($updateStmt->execute([$name, $email, $user_id])) {
                 $_SESSION['user_name'] = $name;
                 $_SESSION['success'] = "Profile updated successfully.";
-                $user['name'] = $name;
-                $user['email'] = $email;
             } else {
                 $_SESSION['error'] = "Failed to update profile.";
             }
@@ -43,16 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
         if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
             $_SESSION['error'] = "All password fields are required.";
+        } elseif (strlen($new_password) < 6) {
+            $_SESSION['error'] = "New password must be at least 6 characters.";
         } elseif ($new_password !== $confirm_password) {
             $_SESSION['error'] = "New passwords do not match.";
         } elseif (!password_verify($current_password, $user['password']) && $current_password !== $user['password']) {
             $_SESSION['error'] = "Current password is incorrect.";
         } else {
+            // Save new password securely hashed
+            $hashed   = password_hash($new_password, PASSWORD_DEFAULT);
             $passStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-            if ($passStmt->execute([$new_password, $user_id])) {
+            if ($passStmt->execute([$hashed, $user_id])) {
                 $_SESSION['success'] = "Password changed successfully.";
-                // Update local user array to reflect new password
-                $user['password'] = $new_password; 
             } else {
                 $_SESSION['error'] = "Failed to change password.";
             }
@@ -105,6 +107,7 @@ include 'includes/header.php';
             </div>
             <div class="card-body">
                 <form method="POST" action="" class="needs-validation" novalidate>
+                    <?= csrfField() ?>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="name" class="form-label">Full Name</label>
@@ -131,6 +134,7 @@ include 'includes/header.php';
             </div>
             <div class="card-body">
                 <form method="POST" action="" class="needs-validation" novalidate>
+                    <?= csrfField() ?>
                     <div class="mb-3">
                         <label for="current_password" class="form-label">Current Password</label>
                         <div class="input-group">

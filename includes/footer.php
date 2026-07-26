@@ -20,6 +20,7 @@
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                     <form id="deleteForm" method="POST" action="">
                         <input type="hidden" name="id" id="deleteId">
+                        <?= isLoggedIn() ? csrfField() : '' ?>
                         <button type="submit" class="btn btn-danger px-4">Delete</button>
                     </form>
                 </div>
