@@ -13,11 +13,11 @@
             </form>
 
             <div class="dropdown">
-                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                        <i class="bi bi-person fs-5"></i>
+                <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="bi bi-person"></i>
                     </div>
-                    <span class="d-none d-md-inline">Admin</span>
+                    <span class="fw-medium"><?= htmlspecialchars($_SESSION['user_name'] ?? 'User') ?></span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownUser1">
                     <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/profile.php"><i class="bi bi-person me-2"></i>Profile</a></li>
