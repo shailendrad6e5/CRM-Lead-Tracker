@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'] ?? '';
 
     // Update Profile Info
-    if (isset($_POST['update_profile'])) {
+    if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
         if (empty($name) || empty($email)) {
             $_SESSION['error'] = "Name and Email are required.";
         } else {
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Change Password
-    if (isset($_POST['change_password'])) {
+    if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
         if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
             $_SESSION['error'] = "All password fields are required.";
         } elseif ($new_password !== $confirm_password) {
@@ -113,8 +113,9 @@ include 'includes/header.php';
                             <div class="invalid-feedback">Valid email is required.</div>
                         </div>
                     </div>
+                    <input type="hidden" name="action" value="update_profile">
                     <div class="d-flex justify-content-end">
-                        <button type="submit" name="update_profile" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Save Changes</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Save Changes</button>
                     </div>
                 </form>
             </div>
@@ -155,8 +156,9 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
+                    <input type="hidden" name="action" value="change_password">
                     <div class="d-flex justify-content-end">
-                        <button type="submit" name="change_password" class="btn btn-secondary"><i class="bi bi-key me-2"></i>Update Password</button>
+                        <button type="submit" class="btn btn-secondary"><i class="bi bi-key me-2"></i>Update Password</button>
                     </div>
                 </form>
             </div>
