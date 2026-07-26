@@ -104,7 +104,7 @@ include 'includes/header.php';
                                 <?php foreach($recentLeads as $lead): ?>
                                 <tr>
                                     <td>
-                                        <div class="fw-semibold text-dark"><?= htmlspecialchars($lead['name']) ?></div>
+                                        <a href="<?= BASE_URL ?>/leads/view.php?id=<?= $lead['id'] ?>" class="fw-semibold text-dark text-decoration-none d-block"><?= htmlspecialchars($lead['name']) ?></a>
                                         <div class="small-text text-muted"><?= htmlspecialchars($lead['company']) ?></div>
                                     </td>
                                     <td>

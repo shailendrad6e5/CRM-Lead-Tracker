@@ -64,7 +64,7 @@ $leads = $stmt->fetchAll();
 include '../includes/header.php';
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
         <h1 class="h3 mb-0 text-gray-800">Leads</h1>
         <p class="text-muted small mb-0">Manage and track your potential customers</p>
@@ -133,7 +133,7 @@ include '../includes/header.php';
                         <?php foreach($leads as $lead): ?>
                         <tr>
                             <td>
-                                <div class="fw-semibold text-dark"><?= htmlspecialchars($lead['name']) ?></div>
+                                <a href="view.php?id=<?= $lead['id'] ?>" class="fw-semibold text-dark text-decoration-none d-block"><?= htmlspecialchars($lead['name']) ?></a>
                                 <div class="small-text text-muted"><i class="bi bi-building me-1"></i><?= htmlspecialchars($lead['company'] ?? 'N/A') ?></div>
                             </td>
                             <td>

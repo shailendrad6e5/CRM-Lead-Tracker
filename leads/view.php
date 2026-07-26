@@ -40,7 +40,7 @@ $pageTitle = htmlspecialchars($lead['name']);
 include '../includes/header.php';
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
         <h1 class="h3 mb-0 text-gray-800">Lead Details</h1>
         <nav aria-label="breadcrumb">
@@ -50,7 +50,7 @@ include '../includes/header.php';
             </ol>
         </nav>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="<?= BASE_URL ?>/leads/list.php" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Back
         </a>
