@@ -1,8 +1,6 @@
 -- Database: crm_lead_tracker
 
-CREATE DATABASE IF NOT EXISTS `crm_lead_tracker`;
-USE `crm_lead_tracker`;
-
+-- Database statements removed for shared hosting compatibility
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
