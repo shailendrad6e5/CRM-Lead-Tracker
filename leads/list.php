@@ -10,8 +10,8 @@ $pageTitle = 'Leads';
 // Handle delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     $id = $_POST['id'];
-    $stmt = $pdo->prepare("DELETE FROM leads WHERE id = ?");
-    if($stmt->execute([$id])) {
+    $stmt = $pdo->prepare("DELETE FROM leads WHERE id = ? AND assigned_to = ?");
+    if($stmt->execute([$id, $_SESSION['user_id']])) {
         $_SESSION['success'] = "Lead deleted successfully.";
     } else {
         $_SESSION['error'] = "Failed to delete lead.";
@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
 }
 
 // Build query with filters and search
-$where = "1=1";
-$params = [];
+$where = "assigned_to = ?";
+$params = [$_SESSION['user_id']];
 
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search = $_GET['search'];

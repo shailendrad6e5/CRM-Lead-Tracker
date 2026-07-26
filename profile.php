@@ -43,15 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "All password fields are required.";
         } elseif ($new_password !== $confirm_password) {
             $_SESSION['error'] = "New passwords do not match.";
-        } elseif (!password_verify($current_password, $user['password'])) {
+        } elseif ($current_password !== $user['password']) {
             $_SESSION['error'] = "Current password is incorrect.";
         } else {
-            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             $passStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-            if ($passStmt->execute([$hashed_password, $user_id])) {
+            if ($passStmt->execute([$new_password, $user_id])) {
                 $_SESSION['success'] = "Password changed successfully.";
-                // Update local user array to reflect new hash so subsequent checks don't fail immediately if they happen on the same request
-                $user['password'] = $hashed_password; 
+                // Update local user array to reflect new password
+                $user['password'] = $new_password; 
             } else {
                 $_SESSION['error'] = "Failed to change password.";
             }

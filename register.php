@@ -11,31 +11,38 @@ if (isLoggedIn()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
-    if (empty($email) || empty($password)) {
-        $error = 'Please enter email and password.';
+    if (empty($name) || empty($email) || empty($password)) {
+        $error = 'Please fill in all fields.';
+    } elseif ($password !== $confirm_password) {
+        $error = 'Passwords do not match.';
     } else {
-        $stmt = $pdo->prepare('SELECT id, name, password FROM users WHERE email = ?');
+        // Check if email already exists
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
         $stmt->execute([$email]);
-        $user = $stmt->fetch();
-
-        if ($user && $password === $user['password']) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            
-            // Handle remember me if needed
-            
-            header('Location: ' . BASE_URL . '/dashboard.php');
-            exit;
+        if ($stmt->fetch()) {
+            $error = 'Email is already registered.';
         } else {
-            $error = 'Invalid email or password.';
+            // Insert new user with plain text password
+            $insertStmt = $pdo->prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
+            if ($insertStmt->execute([$name, $email, $password])) {
+                $user_id = $pdo->lastInsertId();
+                $_SESSION['user_id'] = $user_id;
+                $_SESSION['user_name'] = $name;
+                header('Location: ' . BASE_URL . '/dashboard.php');
+                exit;
+            } else {
+                $error = 'Registration failed. Please try again.';
+            }
         }
     }
 }
 
-$pageTitle = 'Login';
+$pageTitle = 'Register';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -56,7 +63,7 @@ $pageTitle = 'Login';
     <div class="auth-card card">
         <div class="text-center mb-4">
             <h1 class="h3 fw-bold text-primary mb-2"><i class="bi bi-hexagon-fill me-2"></i>Mini CRM</h1>
-            <p class="text-muted small">Sign in to manage your leads</p>
+            <p class="text-muted small">Create an account to manage your leads</p>
         </div>
 
         <?php if ($error): ?>
@@ -66,6 +73,15 @@ $pageTitle = 'Login';
         <?php endif; ?>
 
         <form method="POST" action="" class="needs-validation" novalidate>
+            <div class="mb-3">
+                <label for="name" class="form-label">Full Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" id="name" name="name" value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" required>
+                    <div class="invalid-feedback">Please enter your name.</div>
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label for="email" class="form-label">Email address</label>
                 <div class="input-group">
@@ -80,30 +96,24 @@ $pageTitle = 'Login';
                 <div class="input-group">
                     <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
                     <input type="password" class="form-control" id="password" name="password" required>
-                    <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash" id="togglePassword"></i></span>
-                    <div class="invalid-feedback">Please enter your password.</div>
+                    <div class="invalid-feedback">Please enter a password.</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-lock-fill"></i></span>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    <div class="invalid-feedback">Please confirm your password.</div>
                 </div>
             </div>
             
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
-                    <label class="form-check-label small" for="rememberMe">Remember me</label>
-                </div>
-                <a href="#" class="small text-decoration-none text-primary">Forgot password?</a>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Sign In <i class="bi bi-box-arrow-in-right ms-2"></i></button>
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Sign Up <i class="bi bi-person-plus ms-2"></i></button>
         </form>
         
         <div class="mt-4 text-center small text-muted">
-            Don't have an account? <a href="register.php" class="text-primary text-decoration-none fw-medium">Sign up here</a>
-        </div>
-        
-        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='admin123';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
-            <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Demo Credentials (Click to auto-fill)</p>
-            <div>Email: <span class="fw-medium text-dark">admin@example.com</span></div>
-            <div>Password: <span class="fw-medium text-dark">admin123</span></div>
+            Already have an account? <a href="login.php" class="text-primary text-decoration-none fw-medium">Sign in here</a>
         </div>
     </div>
 

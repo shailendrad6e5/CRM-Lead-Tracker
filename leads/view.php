@@ -14,8 +14,8 @@ $id = $_GET['id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
     $newStatus = $_POST['quick_status'];
-    $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
-    $updateStmt->execute([$newStatus, $id]);
+    $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ? AND assigned_to = ?");
+    $updateStmt->execute([$newStatus, $id, $_SESSION['user_id']]);
     $_SESSION['success'] = "Lead marked as $newStatus.";
     header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
     exit;
@@ -25,9 +25,9 @@ $stmt = $pdo->prepare("
     SELECT l.*, u.name as assigned_name 
     FROM leads l 
     LEFT JOIN users u ON l.assigned_to = u.id 
-    WHERE l.id = ?
+    WHERE l.id = ? AND l.assigned_to = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $_SESSION['user_id']]);
 $lead = $stmt->fetch();
 
 if (!$lead) {

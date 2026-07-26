@@ -18,7 +18,9 @@ $stats = [
     'lost' => 0
 ];
 
-$stmt = $pdo->query("SELECT status, COUNT(*) as count FROM leads GROUP BY status");
+$user_id = $_SESSION['user_id'];
+$stmt = $pdo->prepare("SELECT status, COUNT(*) as count FROM leads WHERE assigned_to = ? GROUP BY status");
+$stmt->execute([$user_id]);
 while ($row = $stmt->fetch()) {
     $stats['total'] += $row['count'];
     if ($row['status'] == 'New') $stats['new'] = $row['count'];
@@ -30,7 +32,9 @@ while ($row = $stmt->fetch()) {
 }
 
 // Get recent leads
-$recentLeads = $pdo->query("SELECT * FROM leads ORDER BY created_at DESC LIMIT 5")->fetchAll();
+$recentStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? ORDER BY created_at DESC LIMIT 5");
+$recentStmt->execute([$user_id]);
+$recentLeads = $recentStmt->fetchAll();
 
 include 'includes/header.php';
 ?>

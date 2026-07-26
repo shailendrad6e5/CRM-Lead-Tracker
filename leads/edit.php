@@ -13,8 +13,8 @@ if (!isset($_GET['id'])) {
 }
 
 $id = $_GET['id'];
-$stmt = $pdo->prepare("SELECT * FROM leads WHERE id = ?");
-$stmt->execute([$id]);
+$stmt = $pdo->prepare("SELECT * FROM leads WHERE id = ? AND assigned_to = ?");
+$stmt->execute([$id, $_SESSION['user_id']]);
 $lead = $stmt->fetch();
 
 if (!$lead) {
@@ -36,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name)) {
         $_SESSION['error'] = "Name is required.";
     } else {
-        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=? WHERE id=?");
-        if($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $id])) {
+        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=? WHERE id=? AND assigned_to=?");
+        if($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $id, $_SESSION['user_id']])) {
             $_SESSION['success'] = "Lead updated successfully.";
             header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
             exit;
