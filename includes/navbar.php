@@ -21,7 +21,6 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownUser1">
                     <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/profile.php"><i class="bi bi-person me-2"></i>Profile</a></li>
-                    <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/settings.php"><i class="bi bi-gear me-2"></i>Settings</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item py-2 text-danger" href="<?= BASE_URL ?>/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
                 </ul>
