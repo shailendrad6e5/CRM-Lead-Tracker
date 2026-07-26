@@ -49,17 +49,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Show/Hide Password (supports multiple)
-    const togglePasswords = document.querySelectorAll('.toggle-password');
+    const togglePasswords = document.querySelectorAll('.password-toggle-btn');
     togglePasswords.forEach(toggleBtn => {
         toggleBtn.addEventListener('click', function (e) {
             const inputGroup = this.closest('.input-group');
             if (inputGroup) {
                 const passwordInput = inputGroup.querySelector('input');
-                if (passwordInput) {
+                const icon = this.querySelector('i');
+                if (passwordInput && icon) {
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
-                    this.classList.toggle('bi-eye');
-                    this.classList.toggle('bi-eye-slash');
+                    icon.classList.toggle('bi-eye');
+                    icon.classList.toggle('bi-eye-slash');
                 }
             }
         });

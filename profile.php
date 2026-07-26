@@ -35,6 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['error'] = "Failed to update profile.";
             }
         }
+        header("Location: " . BASE_URL . "/profile.php");
+        exit;
     }
 
     // Change Password
@@ -55,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['error'] = "Failed to change password.";
             }
         }
+        header("Location: " . BASE_URL . "/profile.php");
+        exit;
     }
 }
 
@@ -132,7 +136,7 @@ include 'includes/header.php';
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-shield-lock"></i></span>
                             <input type="password" class="form-control" id="current_password" name="current_password" required>
-                            <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                            <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                             <div class="invalid-feedback">Current password is required.</div>
                         </div>
                     </div>
@@ -142,7 +146,7 @@ include 'includes/header.php';
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
                                 <input type="password" class="form-control" id="new_password" name="new_password" required>
-                                <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                                <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                                 <div class="invalid-feedback">New password is required.</div>
                             </div>
                         </div>
@@ -151,7 +155,7 @@ include 'includes/header.php';
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-check-circle"></i></span>
                                 <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                                <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                                <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                                 <div class="invalid-feedback">Please confirm your new password.</div>
                             </div>
                         </div>

@@ -96,7 +96,7 @@ $pageTitle = 'Register';
                 <div class="input-group">
                     <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
                     <input type="password" class="form-control" id="password" name="password" required>
-                    <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                    <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                     <div class="invalid-feedback">Please enter a password.</div>
                 </div>
             </div>
@@ -106,7 +106,7 @@ $pageTitle = 'Register';
                 <div class="input-group">
                     <span class="input-group-text bg-light"><i class="bi bi-check-circle"></i></span>
                     <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                    <span class="input-group-text bg-light cursor-pointer"><i class="bi bi-eye-slash toggle-password"></i></span>
+                    <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                     <div class="invalid-feedback">Please confirm your password.</div>
                 </div>
             </div>
