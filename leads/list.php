@@ -92,7 +92,8 @@ $nextDir  = ($orderDir === 'ASC') ? 'desc' : 'asc';
 
 // Rows per page
 $allowedLimits = [10, 25, 50, 100];
-$limit = in_array((int)($_GET['per_page'] ?? 10), $allowedLimits) ? (int)$_GET['per_page'] : 10;
+$limitRaw = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
+$limit = in_array($limitRaw, $allowedLimits) ? $limitRaw : 10;
 
 // Pagination
 $page   = max(1, (int)($_GET['page'] ?? 1));

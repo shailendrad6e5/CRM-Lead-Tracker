@@ -1,8 +1,8 @@
 import ftplib, sys, os
 FTP_HOST="ftpupload.net"; FTP_USER="if0_42492907"; FTP_PASS="ZWCaZdMosYFD"
 files=[
-    ("includes/helpers.php", "/htdocs/includes/helpers.php"),
-    ("leads/view.php",       "/htdocs/leads/view.php"),
+    ("includes/config.php", "/htdocs/includes/config.php"),
+    ("leads/list.php",      "/htdocs/leads/list.php"),
 ]
 try:
     ftp=ftplib.FTP(FTP_HOST,FTP_USER,FTP_PASS,timeout=30)
