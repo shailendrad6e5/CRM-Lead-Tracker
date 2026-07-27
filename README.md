@@ -39,7 +39,7 @@ lead-management-crm/
 │   ├── list.php
 │   └── view.php
 ├── dashboard.php
-├── database.sql
+├── full_database_install.sql
 ├── index.php
 ├── login.php
 ├── logout.php
@@ -51,16 +51,20 @@ lead-management-crm/
 1. **Clone or Download** the repository to your local server (e.g., inside `C:\xampp\htdocs\CRM-Lead-Tracker`).
 2. **Database Setup**:
    - Open phpMyAdmin (e.g., `http://localhost/phpmyadmin`).
-   - Import the `database.sql` file provided in the root directory. This will create the `crm_lead_tracker` database, tables, and insert default data.
+   - For a **new installation**, import `full_database_install.sql`. It creates the complete current schema.
+   - The repository contains one complete installer; separate legacy migration files are not required.
 3. **Database Configuration**:
-   - Open `includes/db.php`.
-   - Ensure the database credentials match your local setup. The default expects a `root` user with the password `MyNewPass123`.
+   - Copy `includes/local_config.example.php` to `includes/local_config.php` and enter your local database credentials.
+   - On a deployed server, prefer `CRM_DB_HOST`, `CRM_DB_NAME`, `CRM_DB_USER`, and `CRM_DB_PASSWORD` environment variables.
+   - Set `CRM_APP_ENV=production` in production. Never commit `includes/local_config.php` or `.env` files.
 4. **Access the CRM**:
    - Open your browser and navigate to `http://localhost/CRM-Lead-Tracker`.
 
 ## Default Login Credentials
+- These bootstrap credentials work only on a local server.
 - **Email**: admin@example.com
 - **Password**: admin123
+- The first login forces a password change. Production rejects the bootstrap password.
 
 ## Security Implemented
 - **Password Hashing**: Uses PHP's `password_hash()` and `password_verify()`.

@@ -8,23 +8,39 @@ requireLogin();
 
 $userId = (int)$_SESSION['user_id'];
 
-// Mark all as read
-if (isset($_GET['mark_all'])) {
-    $pdo->prepare("UPDATE user_notifications SET is_read=1 WHERE user_id=?")->execute([$userId]);
-    header('Location: ' . BASE_URL . '/notifications.php');
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrfToken();
+    $action = (string)($_POST['action'] ?? '');
+    $fallback = BASE_URL . '/notifications.php';
 
-// Mark single as read and redirect
-if (isset($_GET['read'])) {
-    $nid = (int)$_GET['read'];
-    $pdo->prepare("UPDATE user_notifications SET is_read=1 WHERE id=? AND user_id=?")->execute([$nid, $userId]);
-    $redirect = $_GET['redirect'] ?? '';
-    if ($redirect) {
-        header('Location: ' . $redirect);
-    } else {
-        header('Location: ' . BASE_URL . '/notifications.php');
+    if ($action === 'mark_all') {
+        $pdo->prepare("UPDATE user_notifications SET is_read=1 WHERE user_id=?")->execute([$userId]);
+        header('Location: ' . $fallback);
+        exit;
     }
+
+    if ($action === 'read') {
+        $notificationId = (int)($_POST['notification_id'] ?? 0);
+        $notificationStmt = $pdo->prepare("SELECT link FROM user_notifications WHERE id=? AND user_id=?");
+        $notificationStmt->execute([$notificationId, $userId]);
+        $notification = $notificationStmt->fetch();
+
+        if ($notification) {
+            $pdo->prepare("UPDATE user_notifications SET is_read=1 WHERE id=? AND user_id=?")
+                ->execute([$notificationId, $userId]);
+        }
+
+        $redirect = $fallback;
+        if ($notification && isset($_POST['open_notification'])) {
+            $redirect = getSafeInternalRedirect((string)$notification['link'], $fallback);
+        }
+
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    $_SESSION['error'] = 'Invalid notification action.';
+    header('Location: ' . $fallback);
     exit;
 }
 
@@ -47,6 +63,7 @@ $unreadCount = getUnreadNotificationCount($pdo, $userId);
 $typeIcons = [
     'lead_assigned'   => ['icon' => 'bi-person-check',    'color' => 'text-primary',   'bg' => 'rgba(24,78,119,0.1)'],
     'lead_reassigned' => ['icon' => 'bi-arrow-left-right','color' => 'text-warning',   'bg' => 'rgba(255,193,7,0.1)'],
+    'leads_bulk_assigned' => ['icon' => 'bi-people',      'color' => 'text-primary',   'bg' => 'rgba(24,78,119,0.1)'],
     'account_created' => ['icon' => 'bi-person-plus',     'color' => 'text-success',   'bg' => 'rgba(40,167,69,0.1)'],
     'password_reset'  => ['icon' => 'bi-key',             'color' => 'text-danger',    'bg' => 'rgba(220,53,69,0.1)'],
     'default'         => ['icon' => 'bi-info-circle',     'color' => 'text-secondary', 'bg' => 'rgba(108,117,125,0.1)'],
@@ -63,9 +80,13 @@ include 'includes/header.php';
         </p>
     </div>
     <?php if ($unreadCount > 0): ?>
-    <a href="?mark_all=1" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-check2-all me-1"></i>Mark All as Read
-    </a>
+    <form method="POST" action="<?= BASE_URL ?>/notifications.php" class="m-0">
+        <?= csrfField() ?>
+        <input type="hidden" name="action" value="mark_all">
+        <button type="submit" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-check2-all me-1"></i>Mark All as Read
+        </button>
+    </form>
     <?php endif; ?>
 </div>
 
@@ -94,15 +115,26 @@ include 'includes/header.php';
                     </div>
                     <p class="small mb-1 text-muted"><?= htmlspecialchars($n['message']) ?></p>
                     <?php if (!empty($n['link'])): ?>
-                    <a href="notifications.php?read=<?= $n['id'] ?>&redirect=<?= urlencode($n['link']) ?>" class="small text-primary text-decoration-none">
-                        <i class="bi bi-arrow-right me-1"></i>View
-                    </a>
+                    <form method="POST" action="<?= BASE_URL ?>/notifications.php" class="d-inline">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="read">
+                        <input type="hidden" name="notification_id" value="<?= (int)$n['id'] ?>">
+                        <input type="hidden" name="open_notification" value="1">
+                        <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">
+                            <i class="bi bi-arrow-right me-1"></i>View
+                        </button>
+                    </form>
                     <?php endif; ?>
                 </div>
                 <?php if (!$n['is_read']): ?>
-                <a href="?read=<?= $n['id'] ?>" class="btn btn-sm btn-light border flex-shrink-0" title="Mark as read">
-                    <i class="bi bi-check-lg"></i>
-                </a>
+                <form method="POST" action="<?= BASE_URL ?>/notifications.php" class="m-0 flex-shrink-0">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="read">
+                    <input type="hidden" name="notification_id" value="<?= (int)$n['id'] ?>">
+                    <button type="submit" class="btn btn-sm btn-light border" title="Mark as read">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </form>
                 <?php endif; ?>
             </div>
         </li>

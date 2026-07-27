@@ -31,9 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id']) && !isset($_POS
 // ── Bulk Actions ─────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST['selected_ids'])) {
     verifyCsrfToken();
-    $action      = $_POST['bulk_action'];
+    $action      = (string)$_POST['bulk_action'];
     $selectedRaw = $_POST['selected_ids'] ?? [];
-    $selectedIds = array_filter(array_map('intval', (array)$selectedRaw));
+    $selectedIds = array_values(array_unique(array_filter(array_map('intval', (array)$selectedRaw))));
+
+    if (count($selectedIds) > 500) {
+        $_SESSION['error'] = 'Please process no more than 500 leads at a time.';
+        header("Location: " . BASE_URL . "/leads/list.php");
+        exit;
+    }
 
     if (!empty($selectedIds)) {
         $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
@@ -43,28 +49,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
             $stmt->execute($selectedIds);
             $count = $stmt->rowCount();
             $_SESSION['success'] = "$count lead(s) deleted.";
-        } elseif (in_array($action, ['New','Contacted','Qualified','Proposal Sent','Won','Lost'])) {
+        } elseif (in_array($action, ['New','Contacted','Qualified','Proposal Sent','Won','Lost'], true)) {
             $stmt = $pdo->prepare("UPDATE leads SET status=? WHERE id IN ($placeholders)");
             $stmt->execute(array_merge([$action], $selectedIds));
             $count = $stmt->rowCount();
             $_SESSION['success'] = "$count lead(s) updated to '$action'.";
-        } elseif (strpos($action, 'assign_') === 0 && canAssignLeads()) {
-            $assignTo = (int)str_replace('assign_', '', $action);
-            if ($assignTo > 0) {
-                $stmtName = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-                $stmtName->execute([$assignTo]);
-                $assignName = $stmtName->fetchColumn();
-                $assignNameStr = $assignName ? $assignName : "User ID $assignTo";
+        } elseif (str_starts_with($action, 'assign_') && canAssignLeads()) {
+            $assignTo = filter_var(substr($action, 7), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $assigneeStmt = $pdo->prepare("SELECT id, name FROM users WHERE id = ? AND status = 'active'");
+            $assigneeStmt->execute([$assignTo ?: 0]);
+            $assignee = $assigneeStmt->fetch();
 
-                $stmt = $pdo->prepare("UPDATE leads SET assigned_to=? WHERE id IN ($placeholders)");
-                $stmt->execute(array_merge([$assignTo], $selectedIds));
-                $count = $stmt->rowCount();
-                foreach($selectedIds as $lead_id) {
-                    logLeadActivity($pdo, $lead_id, $_SESSION['user_id'], 'Reassigned', "Lead bulk reassigned to $assignNameStr.");
+            if (!$assignee) {
+                $_SESSION['error'] = 'The selected team member is not active or does not exist.';
+            } else {
+                try {
+                    $pdo->beginTransaction();
+
+                    $leadStmt = $pdo->prepare("SELECT id, assigned_to FROM leads WHERE id IN ($placeholders) FOR UPDATE");
+                    $leadStmt->execute($selectedIds);
+                    $selectedLeads = $leadStmt->fetchAll();
+
+                    $changedIds = [];
+                    foreach ($selectedLeads as $selectedLead) {
+                        if ((int)($selectedLead['assigned_to'] ?? 0) !== (int)$assignee['id']) {
+                            $changedIds[] = (int)$selectedLead['id'];
+                        }
+                    }
+
+                    if (!empty($changedIds)) {
+                        $changedPlaceholders = implode(',', array_fill(0, count($changedIds), '?'));
+                        $updateStmt = $pdo->prepare("
+                            UPDATE leads
+                            SET assigned_to = ?, assigned_by = ?, assigned_at = NOW()
+                            WHERE id IN ($changedPlaceholders)
+                        ");
+                        $updateStmt->execute(array_merge([
+                            (int)$assignee['id'],
+                            (int)$_SESSION['user_id'],
+                        ], $changedIds));
+
+                        $activityStmt = $pdo->prepare("
+                            INSERT INTO lead_activities (lead_id, user_id, action, description)
+                            VALUES (?, ?, 'reassigned', ?)
+                        ");
+                        $assignmentStmt = $pdo->prepare("
+                            INSERT INTO lead_assignments (lead_id, assigned_to, assigned_by, notes)
+                            VALUES (?, ?, ?, ?)
+                        ");
+                        $description = 'Lead bulk reassigned to ' . $assignee['name'] . '.';
+
+                        foreach ($changedIds as $leadId) {
+                            $activityStmt->execute([$leadId, (int)$_SESSION['user_id'], $description]);
+                            $assignmentStmt->execute([
+                                $leadId,
+                                (int)$assignee['id'],
+                                (int)$_SESSION['user_id'],
+                                'Bulk assignment',
+                            ]);
+                        }
+
+                        if ((int)$assignee['id'] !== (int)$_SESSION['user_id']) {
+                            $notificationStmt = $pdo->prepare("
+                                INSERT INTO user_notifications (user_id, type, title, message, link)
+                                VALUES (?, 'leads_bulk_assigned', 'New leads assigned', ?, ?)
+                            ");
+                            $notificationStmt->execute([
+                                (int)$assignee['id'],
+                                count($changedIds) . ' leads were assigned to you.',
+                                BASE_URL . '/my_leads.php',
+                            ]);
+                        }
+                    }
+
+                    $pdo->commit();
+                    $_SESSION['success'] = count($changedIds) . ' lead(s) assigned successfully.';
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    error_log('Bulk lead assignment failed: ' . $e->getMessage());
+                    $_SESSION['error'] = 'The leads could not be assigned. No changes were saved.';
                 }
-                $_SESSION['success'] = "$count lead(s) assigned successfully.";
             }
+        } else {
+            $_SESSION['error'] = 'Invalid bulk action.';
         }
+    } else {
+        $_SESSION['error'] = 'Please select at least one lead.';
     }
     header("Location: " . BASE_URL . "/leads/list.php");
     exit;
@@ -105,11 +177,11 @@ if ($fAssigned > 0 && canAssignLeads()) {
 }
 if (!empty($fFollowUp)) {
     if ($fFollowUp === 'Today') {
-        $where .= " AND l.followup_date = CURRENT_DATE() AND l.followup_status != 'Completed'";
+        $where .= " AND l.followup_date = CURRENT_DATE() AND COALESCE(l.followup_status, 'Pending') != 'Completed'";
     } elseif ($fFollowUp === 'Overdue') {
-        $where .= " AND l.followup_date < CURRENT_DATE() AND l.followup_status != 'Completed'";
+        $where .= " AND l.followup_date < CURRENT_DATE() AND COALESCE(l.followup_status, 'Pending') != 'Completed'";
     } elseif ($fFollowUp === 'Upcoming') {
-        $where .= " AND l.followup_date > CURRENT_DATE() AND l.followup_status != 'Completed'";
+        $where .= " AND l.followup_date > CURRENT_DATE() AND COALESCE(l.followup_status, 'Pending') != 'Completed'";
     } elseif ($fFollowUp === 'Completed') {
         $where .= " AND l.followup_status = 'Completed'";
     }
@@ -167,6 +239,21 @@ $leads = $stmt->fetchAll();
 
 // Fetch team for filter
 $teamMembers = canAssignLeads() ? getTeamMembers($pdo) : [];
+
+$bulkSelectionContext = [
+    'search'      => $search,
+    'status'      => $fStatus,
+    'priority'    => $fPriority,
+    'source'      => $fSource,
+    'followup'    => $fFollowUp,
+    'date_from'   => $fDateFrom,
+    'date_to'     => $fDateTo,
+    'assigned_to' => $fAssigned,
+];
+$bulkStorageKey = 'crm_selected_leads_v2_'
+    . (int)$_SESSION['user_id']
+    . '_'
+    . substr(hash('sha256', serialize($bulkSelectionContext)), 0, 20);
 
 include '../includes/header.php';
 ?>
@@ -280,7 +367,7 @@ include '../includes/header.php';
         </form>
     </div>
                 <div class="card-body p-0">
-        <form id="bulkForm" method="POST" action="">
+        <form id="bulkForm" method="POST" action="" data-storage-key="<?= htmlspecialchars($bulkStorageKey, ENT_QUOTES) ?>">
             <?= csrfField() ?>
             <input type="hidden" name="bulk_action" id="bulkActionInput" value="">
         <div class="table-responsive">

@@ -48,7 +48,7 @@ $monthCounts   = array_column($monthlyData, 'count');
 // ── Today's follow-ups ─────────────────────────────────────────────────────
 $todayFollowups = [];
 try {
-    $fStmt = $pdo->prepare("SELECT * FROM leads WHERE $where AND followup_date = CURDATE() AND followup_status != 'Completed' ORDER BY name");
+    $fStmt = $pdo->prepare("SELECT * FROM leads WHERE $where AND followup_date = CURDATE() AND COALESCE(followup_status, 'Pending') != 'Completed' ORDER BY name");
     $fStmt->execute($params);
     $todayFollowups = $fStmt->fetchAll();
 } catch (Exception $e) { /* table may not exist yet */ }
@@ -56,7 +56,7 @@ try {
 // ── Overdue follow-ups ─────────────────────────────────────────────────────
 $overdueFollowups = [];
 try {
-    $oStmt = $pdo->prepare("SELECT * FROM leads WHERE $where AND followup_date < CURDATE() AND followup_status != 'Completed' AND status NOT IN ('Won','Lost') ORDER BY followup_date ASC LIMIT 5");
+    $oStmt = $pdo->prepare("SELECT * FROM leads WHERE $where AND followup_date < CURDATE() AND COALESCE(followup_status, 'Pending') != 'Completed' AND status NOT IN ('Won','Lost') ORDER BY followup_date ASC LIMIT 5");
     $oStmt->execute($params);
     $overdueFollowups = $oStmt->fetchAll();
 } catch (Exception $e) { /* table may not exist yet */ }

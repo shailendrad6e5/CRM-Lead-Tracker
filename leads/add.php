@@ -23,11 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $followup_priority = $_POST['followup_priority'] ?? 'Medium';
     $followup_notes    = trim($_POST['followup_notes'] ?? '');
 
-    // Assignment — admin/manager can choose; sales_rep gets self-assigned
+    $formError = '';
+
+    // Assignment — admin/manager can choose; sales_rep gets self-assigned.
     if (canAssignLeads() && !empty($_POST['assigned_to'])) {
         $assigned_to = (int)$_POST['assigned_to'];
     } else {
-        $assigned_to = $_SESSION['user_id'];
+        $assigned_to = (int)$_SESSION['user_id'];
     }
 
     // Enum validation
@@ -35,32 +37,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $valid_priorities= ['Low', 'Medium', 'High'];
     $valid_sources   = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
 
-    if (!in_array($status,   $valid_statuses))  $status   = 'New';
-    if (!in_array($priority, $valid_priorities)) $priority = 'Medium';
-    if (!in_array($source,   $valid_sources))   $source   = 'Other';
+    if (!in_array($status, $valid_statuses, true)) $status = 'New';
+    if (!in_array($priority, $valid_priorities, true)) $priority = 'Medium';
+    if (!in_array($source, $valid_sources, true)) $source = 'Other';
+    if (!in_array($followup_priority, $valid_priorities, true)) $followup_priority = 'Medium';
 
     if (empty($name)) {
-        $_SESSION['error'] = "Name is required.";
+        $formError = 'Name is required.';
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $_SESSION['error'] = "Invalid email format.";
-    } else {
-        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, assigned_by, assigned_at, notes, followup_date, followup_time, followup_priority, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)");
-        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $_SESSION['user_id'], $notes, $followup_date, $followup_time, $followup_priority, $followup_notes])) {
+        $formError = 'Invalid email format.';
+    } elseif ($followup_date !== null && !isValidDateValue($followup_date)) {
+        $formError = 'Invalid follow-up date.';
+    } elseif ($followup_time !== null && !isValidTimeValue($followup_time)) {
+        $formError = 'Invalid follow-up time.';
+    }
+
+    if ($formError === '') {
+        $assigneeStmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND status = 'active'");
+        $assigneeStmt->execute([$assigned_to]);
+        if (!$assigneeStmt->fetchColumn()) {
+            $formError = 'The selected assignee is not active or does not exist.';
+        }
+    }
+
+    if ($formError === '') {
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, assigned_by, assigned_at, notes, followup_date, followup_time, followup_priority, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, (int)$_SESSION['user_id'], $notes, $followup_date, $followup_time, $followup_priority, $followup_notes]);
             $newId = $pdo->lastInsertId();
-            logLeadActivity($pdo, $newId, $_SESSION['user_id'], 'created', "Lead created: $name ($company)");
-            // Log assignment history
-            logLeadAssignment($pdo, $newId, $assigned_to, $_SESSION['user_id'], 'Initial assignment on creation');
-            // Notify if assigned to someone else
+
+            $pdo->prepare("INSERT INTO lead_activities (lead_id, user_id, action, description) VALUES (?, ?, 'created', ?)")
+                ->execute([$newId, (int)$_SESSION['user_id'], "Lead created: $name ($company)"]);
+            $pdo->prepare("INSERT INTO lead_assignments (lead_id, assigned_to, assigned_by, notes) VALUES (?, ?, ?, 'Initial assignment on creation')")
+                ->execute([$newId, $assigned_to, (int)$_SESSION['user_id']]);
+
             if ($assigned_to !== (int)$_SESSION['user_id']) {
-                sendNotification($pdo, $assigned_to, 'lead_assigned', 'New Lead Assigned',
-                    "Lead '{$name}' has been assigned to you.", BASE_URL . '/leads/view.php?id=' . $newId);
+                $pdo->prepare("INSERT INTO user_notifications (user_id, type, title, message, link) VALUES (?, 'lead_assigned', 'New Lead Assigned', ?, ?)")
+                    ->execute([
+                        $assigned_to,
+                        "Lead '{$name}' has been assigned to you.",
+                        BASE_URL . '/leads/view.php?id=' . $newId,
+                    ]);
             }
+
+            $pdo->commit();
             $_SESSION['success'] = "Lead added successfully.";
             header("Location: " . BASE_URL . "/leads/view.php?id=" . $newId);
             exit;
-        } else {
-            $_SESSION['error'] = "Failed to add lead.";
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('Lead creation failed: ' . $e->getMessage());
+            $formError = 'Failed to add lead. No changes were saved.';
         }
+    }
+
+    if ($formError !== '') {
+        $_SESSION['error'] = $formError;
     }
 }
 

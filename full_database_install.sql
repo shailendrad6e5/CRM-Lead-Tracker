@@ -11,9 +11,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Default password is 'admin123' (hashed)
+-- Local bootstrap account. The application blocks this password outside the
+-- local environment; change it immediately after the first local login.
 INSERT IGNORE INTO `users` (`name`, `email`, `password`) VALUES
-('Admin User', 'admin@example.com', 'admin123');
+('Admin User', 'admin@example.com', '$2y$10$X88SwKF53asuFXoufrmpY.TktlMmtP4kYubeFdjhmxLcbAXorCxm.');
 
 CREATE TABLE IF NOT EXISTS `leads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -25,17 +26,19 @@ CREATE TABLE IF NOT EXISTS `leads` (
   `status` enum('New','Contacted','Qualified','Proposal Sent','Won','Lost') DEFAULT 'New',
   `priority` enum('Low','Medium','High') DEFAULT 'Medium',
   `assigned_to` int(11) DEFAULT NULL,
+  `assigned_by` int(11) DEFAULT NULL,
+  `assigned_at` datetime DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_at` timestamp DEFAULT current_timestamp(),
   `updated_at` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `assigned_to` (`assigned_to`),
-  CONSTRAINT `fk_assigned_user` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  KEY `assigned_by` (`assigned_by`),
+  CONSTRAINT `fk_assigned_user` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_leads_assigned_by` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT IGNORE INTO `leads` (`name`, `company`, `email`, `phone`, `source`, `status`, `priority`, `assigned_to`, `notes`) VALUES
-('John Doe', 'Acme Corp', 'john@acme.com', '123-456-7890', 'Website', 'New', 'High', 1, 'Initial contact from website.'),
-('Jane Smith', 'Tech Solutions', 'jane@techsolutions.com', '098-765-4321', 'Referral', 'Contacted', 'Medium', 1, 'Looking for our CRM product.');
+-- Production data is intentionally not seeded with sample leads.
 -- =============================================================
 -- CRM Lead Tracker — Database Migration v2
 -- Run this in your phpMyAdmin SQL tab on InfinityFree
@@ -125,14 +128,15 @@ CREATE TABLE IF NOT EXISTS `lead_assignments` (
     `id`          INT(11)      NOT NULL AUTO_INCREMENT,
     `lead_id`     INT(11)      NOT NULL,
     `assigned_to` INT(11)      NOT NULL,
-    `assigned_by` INT(11)      NOT NULL,
+    `assigned_by` INT(11)      NULL,
     `assigned_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `notes`       VARCHAR(255) NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_la_lead`    (`lead_id`),
     KEY `idx_la_to`      (`assigned_to`),
     CONSTRAINT `fk_la_lead` FOREIGN KEY (`lead_id`)     REFERENCES `leads` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_la_to`   FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_la_to`   FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_la_by`   FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Full history of lead assignments';
 
 -- 5. Create notifications table
@@ -181,3 +185,10 @@ CREATE TABLE IF NOT EXISTS `user_activities` (
     KEY `idx_ua_user` (`user_id`),
     CONSTRAINT `fk_ua_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Audit log for user actions';
+
+-- Force the unchanged local bootstrap account to choose a new password.
+-- Re-running this installer does not affect an account whose password changed.
+UPDATE `users`
+SET `requires_password_change` = 1
+WHERE `email` = 'admin@example.com'
+  AND `password` = '$2y$10$X88SwKF53asuFXoufrmpY.TktlMmtP4kYubeFdjhmxLcbAXorCxm.';

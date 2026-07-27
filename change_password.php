@@ -4,8 +4,8 @@ require_once 'includes/db.php';
 require_once 'includes/auth.php';
 require_once 'includes/helpers.php';
 
-// We explicitly check for login here, bypassing requireLogin() which would redirect us back here
-if (!isLoggedIn()) {
+// Validate the account without invoking the forced-password redirect in requireLogin().
+if (!refreshAuthenticatedUser()) {
     header('Location: ' . BASE_URL . '/login.php');
     exit;
 }
@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($password) || empty($confirm_password)) {
         $error = 'Please fill in all fields.';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters.';
+    } elseif (strlen($password) < 8) {
+        $error = 'Password must be at least 8 characters.';
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match.';
     } else {
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                     <div class="invalid-feedback">Please enter your new password.</div>
                 </div>
-                <div class="form-text small">Must be at least 6 characters.</div>
+                <div class="form-text small">Must be at least 8 characters.</div>
             </div>
 
             <div class="mb-4">

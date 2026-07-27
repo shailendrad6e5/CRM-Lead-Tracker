@@ -5,7 +5,7 @@ require_once '../includes/auth.php';
 require_once '../includes/helpers.php';
 
 requireLogin();
-requireRole(['admin', 'manager']);
+requireRole(['admin']);
 verifyCsrfToken();
 
 $action   = $_POST['action']  ?? '';
@@ -29,15 +29,9 @@ if (!$targetUser) {
     exit;
 }
 
-if ($_SESSION['user_role'] === 'manager' && $targetUser['role'] === 'admin') {
-    $_SESSION['error'] = 'Managers cannot modify Administrator accounts.';
-    header('Location: ' . BASE_URL . '/team.php');
-    exit;
-}
-
 switch ($action) {
     case 'toggle_status':
-        $newStatus = in_array($value, ['active','inactive','suspended']) ? $value : 'active';
+        $newStatus = in_array($value, ['active','inactive','suspended'], true) ? $value : 'active';
         $pdo->prepare('UPDATE users SET status = ? WHERE id = ?')->execute([$newStatus, $targetId]);
         logUserActivity($pdo, $_SESSION['user_id'], 'User Status Changed', "Changed status of {$targetUser['email']} to {$newStatus}.");
         $label = ucfirst($newStatus);
@@ -45,11 +39,6 @@ switch ($action) {
         break;
 
     case 'delete':
-        if ($_SESSION['user_role'] === 'manager') {
-            $_SESSION['error'] = 'Managers cannot delete accounts.';
-            break;
-        }
-
         // Check if user has assigned leads
         $leadCheck = $pdo->prepare('SELECT COUNT(*) FROM leads WHERE assigned_to = ?');
         $leadCheck->execute([$targetId]);
@@ -58,25 +47,25 @@ switch ($action) {
             break;
         }
 
-        // Delete avatar file if exists
-        if (!empty($targetUser['avatar'])) {
-            $avatarPath = __DIR__ . '/../assets/avatars/' . $targetUser['avatar'];
-            if (file_exists($avatarPath)) unlink($avatarPath);
+        try {
+            $deleteStmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+            $deleteStmt->execute([$targetId]);
+            if ($deleteStmt->rowCount() < 1) {
+                throw new RuntimeException('User deletion affected no rows.');
+            }
+
+            deleteAvatarFile($targetUser['avatar'] ?? null);
+            logUserActivity($pdo, $_SESSION['user_id'], 'User Deleted', "Deleted user account: {$targetUser['email']}");
+            $_SESSION['success'] = "User '{$targetUser['name']}' deleted.";
+        } catch (Throwable $e) {
+            error_log('User deletion failed: ' . $e->getMessage());
+            $_SESSION['error'] = 'The user could not be deleted.';
         }
-        
-        // Delete user
-        $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$targetId]);
-        logUserActivity($pdo, $_SESSION['user_id'], 'User Deleted', "Deleted user account: {$targetUser['email']}");
-        $_SESSION['success'] = "User '{$targetUser['name']}' deleted.";
         break;
 
     case 'reset_password':
-        if ($_SESSION['user_role'] === 'manager') {
-            $_SESSION['error'] = 'Managers cannot reset passwords.';
-            break;
-        }
-        if (strlen($value) < 6) {
-            $_SESSION['error'] = 'Password too short.';
+        if (strlen($value) < 8) {
+            $_SESSION['error'] = 'Password must be at least 8 characters.';
             break;
         }
         $hashed = password_hash($value, PASSWORD_DEFAULT);

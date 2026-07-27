@@ -14,16 +14,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_followup']))
     verifyCsrfToken();
     $id = (int)$_POST['lead_id'];
     $stmt = $pdo->prepare("UPDATE leads SET followup_status = 'Completed', completed_at = NOW() WHERE id = ? AND assigned_to = ?");
-    if ($stmt->execute([$id, $user_id])) {
-        logLeadActivity($pdo, $id, $user_id, 'status_changed', "Follow-up marked as Completed from Follow-ups Hub");
+    $stmt->execute([$id, $user_id]);
+    if ($stmt->rowCount() > 0) {
+        logLeadActivity($pdo, $id, $user_id, 'followup_completed', "Follow-up marked as Completed from Follow-ups Hub");
         $_SESSION['success'] = "Follow-up completed.";
+    } else {
+        $_SESSION['error'] = 'Follow-up not found or already completed.';
     }
     header("Location: " . BASE_URL . "/followups.php");
     exit;
 }
 
 // Fetch Follow-ups
-$where = "assigned_to = ? AND followup_status != 'Completed' AND followup_date IS NOT NULL";
+$where = "assigned_to = ? AND COALESCE(followup_status, 'Pending') != 'Completed' AND followup_date IS NOT NULL";
 $params = [$user_id];
 
 $search = trim($_GET['search'] ?? '');

@@ -54,8 +54,8 @@
             </a>
         </li>
 
-        <!-- Team Management — Admin & Manager -->
-        <?php if (hasAnyRole(['admin', 'manager'])): ?>
+        <!-- Team Management — Admin only -->
+        <?php if (isAdmin()): ?>
         <li class="nav-item mt-2">
             <div class="px-3 py-1">
                 <span class="text-muted" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Administration</span>

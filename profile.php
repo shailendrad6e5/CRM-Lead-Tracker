@@ -27,29 +27,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Name is required.";
         } else {
             $avatar = $user['avatar'];
-            // Handle avatar upload
-            if (!empty($_FILES['avatar']['name'])) {
-                $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-                if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
-                    $filename = 'avatar_' . $user_id . '_' . time() . '.' . $ext;
-                    $dest = __DIR__ . '/assets/avatars/' . $filename;
-                    if (move_uploaded_file($_FILES['avatar']['tmp_name'], $dest)) {
-                        if (!empty($user['avatar']) && file_exists(__DIR__ . '/assets/avatars/' . $user['avatar'])) {
-                            unlink(__DIR__ . '/assets/avatars/' . $user['avatar']);
-                        }
-                        $avatar = $filename;
-                    }
-                }
-            }
+            $newAvatar = null;
+            $upload = storeAvatarUpload($_FILES['avatar'] ?? [], 'avatar_' . $user_id);
 
-            $upStmt = $pdo->prepare("UPDATE users SET name=?, phone=?, job_title=?, avatar=? WHERE id=?");
-            if ($upStmt->execute([$name, $phone, $job_title, $avatar, $user_id])) {
-                $_SESSION['user_name']       = $name;
-                $_SESSION['user_avatar']     = $avatar;
-                $_SESSION['user_job_title']  = $job_title;
-                $_SESSION['success'] = "Profile updated successfully.";
+            if ($upload['error']) {
+                $_SESSION['error'] = $upload['error'];
             } else {
-                $_SESSION['error'] = "Failed to update profile.";
+                if ($upload['filename']) {
+                    $newAvatar = $upload['filename'];
+                    $avatar = $newAvatar;
+                }
+
+                try {
+                    $upStmt = $pdo->prepare("UPDATE users SET name=?, phone=?, job_title=?, avatar=? WHERE id=?");
+                    $upStmt->execute([$name, $phone, $job_title, $avatar, $user_id]);
+
+                    if ($newAvatar && $user['avatar'] !== $newAvatar) {
+                        deleteAvatarFile($user['avatar']);
+                    }
+
+                    $_SESSION['user_name']       = $name;
+                    $_SESSION['user_avatar']     = $avatar;
+                    $_SESSION['user_job_title']  = $job_title;
+                    $_SESSION['success'] = "Profile updated successfully.";
+                } catch (Throwable $e) {
+                    if ($newAvatar) {
+                        deleteAvatarFile($newAvatar);
+                    }
+                    error_log('Profile update failed: ' . $e->getMessage());
+                    $_SESSION['error'] = "Failed to update profile.";
+                }
             }
         }
         header("Location: " . BASE_URL . "/profile.php");
@@ -64,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
             $_SESSION['error'] = "All password fields are required.";
-        } elseif (strlen($new_password) < 6) {
-            $_SESSION['error'] = "New password must be at least 6 characters.";
+        } elseif (strlen($new_password) < 8) {
+            $_SESSION['error'] = "New password must be at least 8 characters.";
         } elseif ($new_password !== $confirm_password) {
             $_SESSION['error'] = "New passwords do not match.";
         } elseif (!password_verify($current_password, $user['password']) && $current_password !== $user['password']) {
@@ -263,7 +270,7 @@ include 'includes/header.php';
                             <label class="form-label">New Password</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
-                                <input type="password" class="form-control" name="new_password" required minlength="6">
+                                <input type="password" class="form-control" name="new_password" required minlength="8">
                                 <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                             </div>
                         </div>

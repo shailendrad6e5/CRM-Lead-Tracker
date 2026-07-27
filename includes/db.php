@@ -1,21 +1,25 @@
 <?php
-require_once 'config.php';
+require_once __DIR__ . '/config.php';
 
-// Database configuration
+// Credentials come from server environment variables or an ignored local
+// configuration file. Browser-controlled request headers never choose them.
+$localConfig = [];
+$localConfigPath = __DIR__ . '/local_config.php';
+if (is_file($localConfigPath)) {
+    $loadedConfig = require $localConfigPath;
+    if (is_array($loadedConfig)) {
+        $localConfig = $loadedConfig;
+    }
+}
 
-// Check if running locally or on the live server
-if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1')) {
-    // Local XAMPP Credentials
-    $host = 'localhost';
-    $db   = 'crm_lead_tracker';
-    $user = 'root';
-    $pass = 'MyNewPass123';
-} else {
-    // Live Server Credentials (configure these for your production environment)
-    $host = 'localhost';
-    $db   = 'production_db_name';
-    $user = 'production_db_user';
-    $pass = 'production_db_pass';
+$host = (string)(getenv('CRM_DB_HOST') ?: ($localConfig['host'] ?? ''));
+$db   = (string)(getenv('CRM_DB_NAME') ?: ($localConfig['database'] ?? ''));
+$user = (string)(getenv('CRM_DB_USER') ?: ($localConfig['username'] ?? ''));
+$pass = (string)(getenv('CRM_DB_PASSWORD') ?: ($localConfig['password'] ?? ''));
+
+if ($host === '' || $db === '' || $user === '') {
+    error_log('CRM database configuration is incomplete.');
+    die('Database configuration is incomplete. Please contact the administrator.');
 }
 
 $charset = 'utf8mb4';

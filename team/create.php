@@ -5,7 +5,7 @@ require_once '../includes/auth.php';
 require_once '../includes/helpers.php';
 
 requireLogin();
-requireRole(['admin', 'manager']);
+requireRole(['admin']);
 
 $pageTitle = 'Create Team Member';
 $errors = [];
@@ -24,18 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $validRoles    = ['admin','manager','sales_rep'];
     $validStatuses = ['active','inactive','suspended'];
-    if (!in_array($role,   $validRoles))    $role   = 'sales_rep';
-    if (!in_array($status, $validStatuses)) $status = 'active';
-
-    if ($_SESSION['user_role'] === 'manager' && $role === 'admin') {
-        $errors[] = 'Managers cannot create Administrator accounts.';
-    }
+    if (!in_array($role,   $validRoles, true))    $role   = 'sales_rep';
+    if (!in_array($status, $validStatuses, true)) $status = 'active';
 
     if (empty($name))                     $errors[] = 'Full name is required.';
     if (empty($email))                    $errors[] = 'Email is required.';
     elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email format.';
     if (empty($password))                 $errors[] = 'Password is required.';
-    elseif (strlen($password) < 6)        $errors[] = 'Password must be at least 6 characters.';
+    elseif (strlen($password) < 8)        $errors[] = 'Password must be at least 8 characters.';
 
     if (empty($errors)) {
         // Check duplicate email
@@ -46,34 +42,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Handle avatar upload
     $avatar = null;
-    if (!empty($_FILES['avatar']['name'])) {
-        $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
-            $filename = 'avatar_' . time() . '_' . rand(100,999) . '.' . $ext;
-            $dest     = __DIR__ . '/../assets/avatars/' . $filename;
-            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $dest)) {
-                $avatar = $filename;
-            }
+    if (empty($errors)) {
+        $upload = storeAvatarUpload($_FILES['avatar'] ?? [], 'avatar');
+        if ($upload['error']) {
+            $errors[] = $upload['error'];
         } else {
-            $errors[] = 'Avatar must be JPG, PNG, GIF or WEBP.';
+            $avatar = $upload['filename'];
         }
     }
 
     if (empty($errors)) {
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare('INSERT INTO users (name, email, password, role, department, phone, job_title, avatar, status, created_by, requires_password_change) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
-        if ($stmt->execute([$name, $email, $hashed, $role, $department, $phone, $job_title, $avatar, $status, $_SESSION['user_id']])) {
+        try {
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare('INSERT INTO users (name, email, password, role, department, phone, job_title, avatar, status, created_by, requires_password_change) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
+            $stmt->execute([$name, $email, $hashed, $role, $department, $phone, $job_title, $avatar, $status, $_SESSION['user_id']]);
             $newUserId = $pdo->lastInsertId();
             logUserActivity($pdo, $_SESSION['user_id'], 'User Created', "Created new user: {$email} ({$role})");
-            // Send welcome notification
             sendNotification($pdo, $newUserId, 'account_created', 'Welcome to the Team!',
                 "Your account has been created. Role: " . getRoleLabel($role), BASE_URL . '/profile.php');
             $_SESSION['success'] = "Team member '{$name}' created successfully.";
             header('Location: ' . BASE_URL . '/team.php');
             exit;
-        } else {
+        } catch (Throwable $e) {
+            if ($avatar) {
+                deleteAvatarFile($avatar);
+            }
+            error_log('Team member creation failed: ' . $e->getMessage());
             $errors[] = 'Failed to create user.';
         }
     }
@@ -169,7 +164,7 @@ include '../includes/header.php';
                         <div class="col-md-6">
                             <label class="form-label">Password <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="password" class="form-control" name="password" id="newUserPass" required minlength="6">
+                                <input type="password" class="form-control" name="password" id="newUserPass" required minlength="8">
                                 <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                             </div>
                         </div>

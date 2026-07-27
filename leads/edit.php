@@ -48,8 +48,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $followup_status   = $_POST['followup_status'] ?? $lead['followup_status'];
     $followup_priority = $_POST['followup_priority'] ?? $lead['followup_priority'];
     $followup_notes    = trim($_POST['followup_notes'] ?? '');
+    $formError = '';
 
-    // If status just changed to Completed, set completed_at
+    // Enum validation
+    $valid_statuses  = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+    $valid_priorities= ['Low', 'Medium', 'High'];
+    $valid_sources   = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+    $valid_followup_statuses = ['Pending', 'Completed', 'Missed'];
+
+    if (!in_array($status, $valid_statuses, true)) $status = $lead['status'];
+    if (!in_array($priority, $valid_priorities, true)) $priority = $lead['priority'];
+    if (!in_array($source, $valid_sources, true)) $source = $lead['source'];
+    if (!in_array($followup_status, $valid_followup_statuses, true)) {
+        $followup_status = $lead['followup_status'] ?? 'Pending';
+    }
+    if (!in_array($followup_priority, $valid_priorities, true)) {
+        $followup_priority = $lead['followup_priority'] ?? 'Medium';
+    }
+
+    // If status just changed to Completed, set completed_at.
     $completed_at = $lead['completed_at'];
     if ($followup_status === 'Completed' && $lead['followup_status'] !== 'Completed') {
         $completed_at = date('Y-m-d H:i:s');
@@ -57,54 +74,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $completed_at = null;
     }
 
-    // Enum validation
-    $valid_statuses  = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
-    $valid_priorities= ['Low', 'Medium', 'High'];
-    $valid_sources   = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
-
-    if (!in_array($status,   $valid_statuses))  $status   = $lead['status'];
-    if (!in_array($priority, $valid_priorities)) $priority = $lead['priority'];
-    if (!in_array($source,   $valid_sources))   $source   = $lead['source'];
-
     if (empty($name)) {
-        $_SESSION['error'] = "Name is required.";
+        $formError = 'Name is required.';
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $_SESSION['error'] = "Invalid email format.";
-    } else {
-        // Handle assignment change (admin/manager only)
-        $new_assigned_to = (int)$lead['assigned_to'];
-        if (canAssignLeads() && !empty($_POST['assigned_to'])) {
-            $new_assigned_to = (int)$_POST['assigned_to'];
+        $formError = 'Invalid email format.';
+    } elseif ($followup_date !== null && !isValidDateValue($followup_date)) {
+        $formError = 'Invalid follow-up date.';
+    } elseif ($followup_time !== null && !isValidTimeValue($followup_time)) {
+        $formError = 'Invalid follow-up time.';
+    }
+
+    // Handle assignment change (admin/manager only).
+    $new_assigned_to = $lead['assigned_to'] !== null ? (int)$lead['assigned_to'] : null;
+    if (canAssignLeads() && !empty($_POST['assigned_to'])) {
+        $new_assigned_to = (int)$_POST['assigned_to'];
+    }
+
+    if ($formError === '' && $new_assigned_to !== null) {
+        $assigneeStmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND status = 'active'");
+        $assigneeStmt->execute([$new_assigned_to]);
+        if (!$assigneeStmt->fetchColumn()) {
+            $formError = 'The selected assignee is not active or does not exist.';
         }
+    }
 
-        $assignmentChanged = $new_assigned_to !== (int)$lead['assigned_to'];
+    if ($formError === '') {
+        $oldAssignedTo = $lead['assigned_to'] !== null ? (int)$lead['assigned_to'] : null;
+        $assignmentChanged = $new_assigned_to !== $oldAssignedTo;
 
-        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, assigned_to=?, assigned_by=?, assigned_at=?, notes=?, followup_date=?, followup_time=?, followup_status=?, followup_priority=?, followup_notes=?, completed_at=? WHERE id=?");
         $assignedAt = $assignmentChanged ? date('Y-m-d H:i:s') : $lead['assigned_at'];
         $assignedBy = $assignmentChanged ? $_SESSION['user_id'] : $lead['assigned_by'];
-        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $new_assigned_to, $assignedBy, $assignedAt, $notes, $followup_date, $followup_time, $followup_status, $followup_priority, $followup_notes, $completed_at, $id])) {
-            // Build activity description
+
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, assigned_to=?, assigned_by=?, assigned_at=?, notes=?, followup_date=?, followup_time=?, followup_status=?, followup_priority=?, followup_notes=?, completed_at=? WHERE id=?");
+            $stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $new_assigned_to, $assignedBy, $assignedAt, $notes, $followup_date, $followup_time, $followup_status, $followup_priority, $followup_notes, $completed_at, $id]);
+
             $changes = [];
             if ($lead['status']   !== $status)   $changes[] = "Status: {$lead['status']} → {$status}";
             if ($lead['priority'] !== $priority)  $changes[] = "Priority: {$lead['priority']} → {$priority}";
             if ($lead['name']     !== $name)      $changes[] = "Name updated";
-            if ($assignmentChanged)               $changes[] = "Reassigned to user #{$new_assigned_to}";
+            if ($assignmentChanged)               $changes[] = $new_assigned_to ? "Reassigned to user #{$new_assigned_to}" : 'Unassigned';
             $desc = !empty($changes) ? implode('; ', $changes) : 'Lead details updated';
-            logLeadActivity($pdo, $id, $_SESSION['user_id'], 'edited', $desc);
+            $pdo->prepare("INSERT INTO lead_activities (lead_id, user_id, action, description) VALUES (?, ?, 'edited', ?)")
+                ->execute([$id, (int)$_SESSION['user_id'], $desc]);
 
-            // Log & notify on reassignment
-            if ($assignmentChanged) {
-                logLeadAssignment($pdo, $id, $new_assigned_to, $_SESSION['user_id'], 'Reassigned via edit');
-                sendNotification($pdo, $new_assigned_to, 'lead_reassigned', 'Lead Reassigned to You',
-                    "Lead '{$name}' has been reassigned to you.", BASE_URL . '/leads/view.php?id=' . $id);
+            if ($assignmentChanged && $new_assigned_to !== null) {
+                $pdo->prepare("INSERT INTO lead_assignments (lead_id, assigned_to, assigned_by, notes) VALUES (?, ?, ?, 'Reassigned via edit')")
+                    ->execute([$id, $new_assigned_to, (int)$_SESSION['user_id']]);
+
+                if ($new_assigned_to !== (int)$_SESSION['user_id']) {
+                    $pdo->prepare("INSERT INTO user_notifications (user_id, type, title, message, link) VALUES (?, 'lead_reassigned', 'Lead Reassigned to You', ?, ?)")
+                        ->execute([
+                            $new_assigned_to,
+                            "Lead '{$name}' has been reassigned to you.",
+                            BASE_URL . '/leads/view.php?id=' . $id,
+                        ]);
+                }
             }
 
+            $pdo->commit();
             $_SESSION['success'] = "Lead updated successfully.";
             header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
             exit;
-        } else {
-            $_SESSION['error'] = "Failed to update lead.";
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('Lead update failed: ' . $e->getMessage());
+            $formError = 'Failed to update lead. No changes were saved.';
         }
+    }
+
+    if ($formError !== '') {
+        $_SESSION['error'] = $formError;
     }
 }
 

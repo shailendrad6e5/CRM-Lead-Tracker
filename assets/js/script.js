@@ -1,3 +1,25 @@
+function getBulkStorageKey(form) {
+    return form?.dataset.storageKey || '';
+}
+
+function readBulkSelectedLeads(storageKey) {
+    if (!storageKey) return [];
+
+    try {
+        const value = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+        if (!Array.isArray(value)) return [];
+        return [...new Set(value.map(String).filter(id => /^\d+$/.test(id) && Number(id) > 0))];
+    } catch (error) {
+        sessionStorage.removeItem(storageKey);
+        return [];
+    }
+}
+
+function writeBulkSelectedLeads(storageKey, selectedLeads) {
+    if (!storageKey) return;
+    sessionStorage.setItem(storageKey, JSON.stringify(selectedLeads));
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     // ── Sidebar Toggle ────────────────────────────────────────────────────
     const sidebarCollapse    = document.getElementById("sidebarCollapse");
@@ -86,9 +108,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const bulkBar       = document.getElementById('bulkActionBar');
     const bulkCount     = document.getElementById('bulkCount');
     const bulkCancelBtn = document.getElementById('bulkCancelBtn');
+    const bulkForm      = document.getElementById('bulkForm');
+    const storageKey    = getBulkStorageKey(bulkForm);
     
     // Load selected leads from session storage to persist across pagination
-    let selectedLeads = JSON.parse(sessionStorage.getItem('crm_selected_leads') || '[]');
+    let selectedLeads = readBulkSelectedLeads(storageKey);
+    sessionStorage.removeItem('crm_selected_leads');
 
     function updateBulkBar() {
         if (!bulkBar) return;
@@ -113,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     selectedLeads = selectedLeads.filter(id => id !== cb.value);
                 }
             });
-            sessionStorage.setItem('crm_selected_leads', JSON.stringify(selectedLeads));
+            writeBulkSelectedLeads(storageKey, selectedLeads);
             updateBulkBar();
         });
     }
@@ -130,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 selectedLeads = selectedLeads.filter(id => id !== this.value);
             }
-            sessionStorage.setItem('crm_selected_leads', JSON.stringify(selectedLeads));
+            writeBulkSelectedLeads(storageKey, selectedLeads);
             updateBulkBar();
         });
     });
@@ -138,7 +163,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (bulkCancelBtn) {
         bulkCancelBtn.addEventListener('click', () => {
             selectedLeads = [];
-            sessionStorage.removeItem('crm_selected_leads');
+            if (storageKey) sessionStorage.removeItem(storageKey);
             document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = false);
             if (selectAll) selectAll.checked = false;
             updateBulkBar();
@@ -154,9 +179,13 @@ function doBulkAction(type) {
     const form          = document.getElementById('bulkForm');
     const actionInput   = document.getElementById('bulkActionInput');
     const statusSelect  = document.getElementById('bulkStatusSelect');
-    const selectedLeads = JSON.parse(sessionStorage.getItem('crm_selected_leads') || '[]');
+    const storageKey    = getBulkStorageKey(form);
+    const selectedLeads = readBulkSelectedLeads(storageKey);
 
-    if (selectedLeads.length === 0) { alert('Please select at least one lead.'); return; }
+    if (!form || !actionInput || selectedLeads.length === 0) {
+        alert('Please select at least one lead.');
+        return;
+    }
 
     if (type === 'delete') {
         if (!confirm(`Are you sure you want to delete ${selectedLeads.length} lead(s)? This cannot be undone.`)) return;
@@ -185,6 +214,6 @@ function doBulkAction(type) {
     });
 
     // Clear session storage so it doesn't persist to the next page load after action
-    sessionStorage.removeItem('crm_selected_leads');
+    if (storageKey) sessionStorage.removeItem(storageKey);
     form.submit();
 }

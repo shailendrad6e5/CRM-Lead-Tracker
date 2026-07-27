@@ -11,11 +11,58 @@ require_once __DIR__ . '/csrf.php';
 // ── Basic Auth ───────────────────────────────────────────────────────────────
 
 function isLoggedIn(): bool {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0;
+}
+
+/**
+ * Reload the authenticated account from the database once per request.
+ * This immediately applies suspension, deletion, role, and profile changes.
+ */
+function refreshAuthenticatedUser(): bool {
+    static $validatedUserId = null;
+
+    if (!isLoggedIn()) {
+        return false;
+    }
+
+    $sessionUserId = (int)$_SESSION['user_id'];
+    if ($validatedUserId === $sessionUserId) {
+        return true;
+    }
+
+    global $pdo;
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT id, name, role, department, job_title, avatar, status, requires_password_change
+         FROM users WHERE id = ? LIMIT 1'
+    );
+    $stmt->execute([$sessionUserId]);
+    $user = $stmt->fetch();
+
+    if (!$user || ($user['status'] ?? 'inactive') !== 'active') {
+        $_SESSION = [];
+        session_regenerate_id(true);
+        $_SESSION['error'] = 'Your account is unavailable or has been disabled.';
+        return false;
+    }
+
+    $_SESSION['user_id']         = (int)$user['id'];
+    $_SESSION['user_name']       = $user['name'];
+    $_SESSION['user_role']       = $user['role'] ?? 'sales_rep';
+    $_SESSION['user_department'] = $user['department'] ?? '';
+    $_SESSION['user_job_title']  = $user['job_title'] ?? '';
+    $_SESSION['user_avatar']     = $user['avatar'] ?? '';
+    $_SESSION['requires_password_change'] = (int)($user['requires_password_change'] ?? 0);
+    $validatedUserId = $sessionUserId;
+
+    return true;
 }
 
 function requireLogin(): void {
-    if (!isLoggedIn()) {
+    if (!refreshAuthenticatedUser()) {
         header('Location: ' . BASE_URL . '/login.php');
         exit;
     }

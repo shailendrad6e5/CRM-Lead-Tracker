@@ -13,28 +13,34 @@ if (!isset($_GET['id'])) {
 
 $id = (int)$_GET['id'];
 
+// Authorize access before any POST handler can mutate the lead.
+if (hasAnyRole(['admin', 'manager'])) {
+    $accessStmt = $pdo->prepare("SELECT * FROM leads WHERE id = ?");
+    $accessStmt->execute([$id]);
+} else {
+    $accessStmt = $pdo->prepare("SELECT * FROM leads WHERE id = ? AND assigned_to = ?");
+    $accessStmt->execute([$id, (int)$_SESSION['user_id']]);
+}
+$authorizedLead = $accessStmt->fetch();
+
+if (!$authorizedLead) {
+    $_SESSION['error'] = 'Lead not found or access denied.';
+    header("Location: " . BASE_URL . "/leads/list.php");
+    exit;
+}
+
 // ── Quick Status Change ──────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
     verifyCsrfToken();
-    $newStatus  = $_POST['quick_status'];
+    $newStatus  = (string)$_POST['quick_status'];
     $valid = ['New','Contacted','Qualified','Proposal Sent','Won','Lost'];
-    if (in_array($newStatus, $valid)) {
-        // Admin/manager can change status on any lead
-        if (hasAnyRole(['admin','manager'])) {
-            $oldRow = $pdo->prepare("SELECT status FROM leads WHERE id=?");
-            $oldRow->execute([$id]);
-            $oldStatus = $oldRow->fetchColumn();
-            $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
-            $updateStmt->execute([$newStatus, $id]);
-        } else {
-            $oldRow = $pdo->prepare("SELECT status FROM leads WHERE id=? AND assigned_to=?");
-            $oldRow->execute([$id, $_SESSION['user_id']]);
-            $oldStatus = $oldRow->fetchColumn();
-            $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ? AND assigned_to = ?");
-            $updateStmt->execute([$newStatus, $id, $_SESSION['user_id']]);
-        }
-        logLeadActivity($pdo, $id, $_SESSION['user_id'], 'status_changed', "Status changed from {$oldStatus} to {$newStatus}");
+    if (in_array($newStatus, $valid, true) && $newStatus !== $authorizedLead['status']) {
+        $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
+        $updateStmt->execute([$newStatus, $id]);
+        logLeadActivity($pdo, $id, (int)$_SESSION['user_id'], 'status_changed', "Status changed from {$authorizedLead['status']} to {$newStatus}");
         $_SESSION['success'] = "Lead marked as $newStatus.";
+    } elseif (!in_array($newStatus, $valid, true)) {
+        $_SESSION['error'] = 'Invalid lead status.';
     }
     header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
     exit;
@@ -43,10 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
 // ── Follow-up Quick Complete ──────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_followup'])) {
     verifyCsrfToken();
-    $updateStmt = $pdo->prepare("UPDATE leads SET followup_status = 'Completed', completed_at = NOW() WHERE id = ? AND assigned_to = ?");
-    $updateStmt->execute([$id, $_SESSION['user_id']]);
-    logLeadActivity($pdo, $id, $_SESSION['user_id'], 'status_changed', "Follow-up marked as Completed");
-    $_SESSION['success'] = "Follow-up completed.";
+    $updateStmt = $pdo->prepare("UPDATE leads SET followup_status = 'Completed', completed_at = NOW() WHERE id = ? AND COALESCE(followup_status, 'Pending') != 'Completed'");
+    $updateStmt->execute([$id]);
+    if ($updateStmt->rowCount() > 0) {
+        logLeadActivity($pdo, $id, (int)$_SESSION['user_id'], 'followup_completed', 'Follow-up marked as Completed');
+        $_SESSION['success'] = 'Follow-up completed.';
+    }
     header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
     exit;
 }
@@ -54,12 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_followup']))
 // ── Add Note ──────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_note'])) {
     verifyCsrfToken();
-    $note = trim($_POST['note_text'] ?? '');
-    if (!empty($note)) {
+    $note = trim((string)($_POST['note_text'] ?? ''));
+    if ($note !== '') {
         $nStmt = $pdo->prepare("INSERT INTO lead_notes (lead_id, user_id, note) VALUES (?, ?, ?)");
-        $nStmt->execute([$id, $_SESSION['user_id'], $note]);
-        logLeadActivity($pdo, $id, $_SESSION['user_id'], 'note_added', 'Note added');
+        $nStmt->execute([$id, (int)$_SESSION['user_id'], $note]);
+        logLeadActivity($pdo, $id, (int)$_SESSION['user_id'], 'note_added', 'Note added');
         $_SESSION['success'] = "Note added.";
+    } else {
+        $_SESSION['error'] = 'Note cannot be empty.';
     }
     header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
     exit;
@@ -108,7 +118,7 @@ try {
     $activities = $aStmt->fetchAll() ?: [];
 } catch (Exception $e) {}
 
-$pageTitle = htmlspecialchars($lead['name']);
+$pageTitle = $lead['name'];
 include '../includes/header.php';
 ?>
 
@@ -138,9 +148,11 @@ include '../includes/header.php';
         </form>
         <?php endif; ?>
         <a href="<?= BASE_URL ?>/leads/edit.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Edit</a>
-        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $lead['id'] ?>" data-url="<?= BASE_URL ?>/leads/list.php">
-            <i class="bi bi-trash"></i>
-        </button>
+        <?php if (canDeleteLead($lead)): ?>
+            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $lead['id'] ?>" data-url="<?= BASE_URL ?>/leads/list.php">
+                <i class="bi bi-trash"></i>
+            </button>
+        <?php endif; ?>
     </div>
 </div>
 

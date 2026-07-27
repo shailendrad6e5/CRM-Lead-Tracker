@@ -27,7 +27,11 @@
                     <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
                         <span class="fw-semibold small">Notifications</span>
                         <?php if ($unreadCount > 0): ?>
-                        <a href="<?= BASE_URL ?>/notifications.php?mark_all=1" class="small text-primary text-decoration-none">Mark all read</a>
+                        <form method="POST" action="<?= BASE_URL ?>/notifications.php" class="m-0">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="action" value="mark_all">
+                            <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">Mark all read</button>
+                        </form>
                         <?php endif; ?>
                     </div>
                     <?php
@@ -41,17 +45,23 @@
                     </div>
                     <?php else: ?>
                     <?php foreach ($recentNotifs as $n): ?>
-                    <a href="<?= BASE_URL ?>/notifications.php?read=<?= $n['id'] ?><?= !empty($n['link']) ? '&redirect=' . urlencode($n['link']) : '' ?>"
-                       class="d-flex gap-2 px-3 py-2 text-decoration-none <?= $n['is_read'] ? 'text-muted' : 'bg-light' ?> border-bottom">
-                        <div class="flex-shrink-0 mt-1">
-                            <i class="bi <?= $n['type']==='lead_assigned'?'bi-person-check text-primary':($n['type']==='password_reset'?'bi-key text-warning':'bi-info-circle text-success') ?> fs-6"></i>
-                        </div>
-                        <div class="flex-grow-1 overflow-hidden">
-                            <div class="small fw-semibold text-dark text-truncate"><?= htmlspecialchars($n['title']) ?></div>
-                            <div class="small text-muted text-truncate"><?= htmlspecialchars($n['message']) ?></div>
-                            <div style="font-size:10px;" class="text-muted"><?= timeAgo($n['created_at']) ?></div>
-                        </div>
-                    </a>
+                    <form method="POST" action="<?= BASE_URL ?>/notifications.php" class="m-0">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="read">
+                        <input type="hidden" name="notification_id" value="<?= (int)$n['id'] ?>">
+                        <?php if (!empty($n['link'])): ?><input type="hidden" name="open_notification" value="1"><?php endif; ?>
+                        <button type="submit"
+                                class="dropdown-item d-flex gap-2 px-3 py-2 text-decoration-none <?= $n['is_read'] ? 'text-muted' : 'bg-light' ?> border-bottom">
+                            <span class="flex-shrink-0 mt-1">
+                                <i class="bi <?= in_array($n['type'], ['lead_assigned', 'leads_bulk_assigned'], true)?'bi-person-check text-primary':($n['type']==='password_reset'?'bi-key text-warning':'bi-info-circle text-success') ?> fs-6"></i>
+                            </span>
+                            <span class="flex-grow-1 overflow-hidden text-start">
+                                <span class="small fw-semibold text-dark text-truncate d-block"><?= htmlspecialchars($n['title']) ?></span>
+                                <span class="small text-muted text-truncate d-block"><?= htmlspecialchars($n['message']) ?></span>
+                                <span style="font-size:10px;" class="text-muted d-block"><?= timeAgo($n['created_at']) ?></span>
+                            </span>
+                        </button>
+                    </form>
                     <?php endforeach; ?>
                     <?php endif; ?>
                     <a href="<?= BASE_URL ?>/notifications.php" class="d-block text-center small py-2 text-primary text-decoration-none border-top">

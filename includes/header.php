@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($pageTitle) ? $pageTitle . ' - ' : '' ?><?= SITE_TITLE ?></title>
+    <title><?= isset($pageTitle) ? htmlspecialchars((string)$pageTitle) . ' - ' : '' ?><?= htmlspecialchars(SITE_TITLE) ?></title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/favicon.png">
@@ -29,7 +29,7 @@
             <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
-                        <?= $_SESSION['success']; ?>
+                        <?= htmlspecialchars((string)$_SESSION['success']); ?>
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
@@ -40,7 +40,7 @@
             <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
-                        <?= $_SESSION['error']; ?>
+                        <?= htmlspecialchars((string)$_SESSION['error']); ?>
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>

@@ -62,6 +62,16 @@ function timeAgo(?string $datetime): string {
     }
 }
 
+function isValidDateValue(string $value): bool {
+    $date = DateTime::createFromFormat('!Y-m-d', $value);
+    return $date !== false && $date->format('Y-m-d') === $value;
+}
+
+function isValidTimeValue(string $value): bool {
+    $time = DateTime::createFromFormat('!H:i', $value);
+    return $time !== false && $time->format('H:i') === $value;
+}
+
 /**
  * Log a lead activity to the lead_activities table.
  */
@@ -175,8 +185,9 @@ function getUserAvatarHtml(array $user, string $size = 'md'): string {
         $initials = strtoupper(substr($parts[0], 0, 1) . substr(end($parts), 0, 1));
     }
 
-    if (!empty($user['avatar']) && file_exists(__DIR__ . '/../assets/avatars/' . $user['avatar'])) {
-        return "<img src=\"" . BASE_URL . "/assets/avatars/" . htmlspecialchars($user['avatar']) . "\" 
+    $avatar = basename((string)($user['avatar'] ?? ''));
+    if ($avatar !== '' && $avatar === (string)$user['avatar'] && file_exists(__DIR__ . '/../assets/avatars/' . $avatar)) {
+        return "<img src=\"" . BASE_URL . "/assets/avatars/" . htmlspecialchars(rawurlencode($avatar), ENT_QUOTES) . "\"
                      alt=\"{$name}\" title=\"{$name}\"
                      class=\"rounded-circle object-fit-cover\" 
                      style=\"width:{$px};height:{$px};\">";
@@ -193,6 +204,79 @@ function getUserAvatarHtml(array $user, string $size = 'md'): string {
                  style=\"width:{$px};height:{$px};background:{$color};font-size:{$fs};\">
                 {$initials}
             </div>";
+}
+
+/**
+ * Validate and store an uploaded avatar.
+ *
+ * @return array{filename:?string,error:?string}
+ */
+function storeAvatarUpload(array $file, string $prefix): array {
+    $uploadError = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($uploadError === UPLOAD_ERR_NO_FILE) {
+        return ['filename' => null, 'error' => null];
+    }
+    if ($uploadError !== UPLOAD_ERR_OK) {
+        return ['filename' => null, 'error' => 'The avatar upload did not complete. Please try again.'];
+    }
+
+    $size = (int)($file['size'] ?? 0);
+    if ($size <= 0 || $size > 2 * 1024 * 1024) {
+        return ['filename' => null, 'error' => 'Avatar must be a valid image no larger than 2 MB.'];
+    }
+
+    $temporaryPath = (string)($file['tmp_name'] ?? '');
+    if ($temporaryPath === '' || !is_uploaded_file($temporaryPath) || !class_exists('finfo')) {
+        return ['filename' => null, 'error' => 'The uploaded avatar could not be validated.'];
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = (string)$finfo->file($temporaryPath);
+    $allowedTypes = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp',
+    ];
+    $imageInfo = @getimagesize($temporaryPath);
+
+    if ($imageInfo === false || !isset($allowedTypes[$mimeType]) || ($imageInfo['mime'] ?? '') !== $mimeType) {
+        return ['filename' => null, 'error' => 'Avatar must be a JPEG, PNG, GIF, or WebP image.'];
+    }
+
+    $avatarDirectory = __DIR__ . '/../assets/avatars';
+    if (!is_dir($avatarDirectory) && !mkdir($avatarDirectory, 0755, true) && !is_dir($avatarDirectory)) {
+        return ['filename' => null, 'error' => 'The avatar storage directory is unavailable.'];
+    }
+    if (!is_writable($avatarDirectory)) {
+        return ['filename' => null, 'error' => 'The avatar storage directory is not writable.'];
+    }
+
+    $safePrefix = preg_replace('/[^a-z0-9_-]/i', '', $prefix) ?: 'avatar';
+    $filename = $safePrefix . '_' . bin2hex(random_bytes(12)) . '.' . $allowedTypes[$mimeType];
+    $destination = $avatarDirectory . DIRECTORY_SEPARATOR . $filename;
+
+    if (!move_uploaded_file($temporaryPath, $destination)) {
+        return ['filename' => null, 'error' => 'The avatar could not be saved.'];
+    }
+
+    @chmod($destination, 0644);
+    return ['filename' => $filename, 'error' => null];
+}
+
+/**
+ * Delete an application-managed avatar without allowing path traversal.
+ */
+function deleteAvatarFile(?string $filename): void {
+    $filename = (string)$filename;
+    if ($filename === '' || basename($filename) !== $filename) {
+        return;
+    }
+
+    $path = __DIR__ . '/../assets/avatars/' . $filename;
+    if (is_file($path)) {
+        unlink($path);
+    }
 }
 
 /**
@@ -218,6 +302,33 @@ function getUnreadNotificationCount(PDO $pdo, int $user_id): int {
     } catch (Exception $e) {
         return 0;
     }
+}
+
+/**
+ * Allow notification redirects only to paths inside this application.
+ */
+function getSafeInternalRedirect(string $link, string $fallback): string {
+    $link = trim($link);
+    if ($link === '' || str_contains($link, "\r") || str_contains($link, "\n") || str_contains($link, '\\')) {
+        return $fallback;
+    }
+
+    $parts = parse_url($link);
+    if ($parts === false || isset($parts['scheme']) || isset($parts['host']) || isset($parts['user']) || isset($parts['port'])) {
+        return $fallback;
+    }
+
+    $path = (string)($parts['path'] ?? '');
+    if ($path === '' || !str_starts_with($path, '/') || str_starts_with($path, '//')) {
+        return $fallback;
+    }
+
+    $basePath = rtrim(BASE_URL, '/');
+    if ($basePath !== '' && $path !== $basePath && !str_starts_with($path, $basePath . '/')) {
+        return $fallback;
+    }
+
+    return $link;
 }
 
 /**

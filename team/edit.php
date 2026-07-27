@@ -5,7 +5,7 @@ require_once '../includes/auth.php';
 require_once '../includes/helpers.php';
 
 requireLogin();
-requireRole(['admin', 'manager']);
+requireRole(['admin']);
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) {
@@ -22,13 +22,7 @@ if (!$editUser) {
     exit;
 }
 
-if ($_SESSION['user_role'] === 'manager' && $editUser['role'] === 'admin') {
-    $_SESSION['error'] = 'Managers cannot edit Administrator accounts.';
-    header('Location: ' . BASE_URL . '/team.php');
-    exit;
-}
-
-$pageTitle = 'Edit — ' . htmlspecialchars($editUser['name']);
+$pageTitle = 'Edit — ' . $editUser['name'];
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,20 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $validRoles    = ['admin','manager','sales_rep'];
     $validStatuses = ['active','inactive','suspended'];
-    if (!in_array($role,   $validRoles))    $role   = $editUser['role'];
-    if (!in_array($status, $validStatuses)) $status = $editUser['status'];
-
-    if ($_SESSION['user_role'] === 'manager' && $role === 'admin' && $editUser['role'] !== 'admin') {
-        $errors[] = 'Managers cannot promote users to Administrator.';
-        $role = $editUser['role'];
-    }
+    if (!in_array($role,   $validRoles, true))    $role   = $editUser['role'];
+    if (!in_array($status, $validStatuses, true)) $status = $editUser['status'];
 
     if (empty($name))  $errors[] = 'Full name is required.';
     if (empty($email)) $errors[] = 'Email is required.';
     elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email format.';
 
-    if (!empty($new_pass) && strlen($new_pass) < 6) {
-        $errors[] = 'New password must be at least 6 characters.';
+    if (!empty($new_pass) && strlen($new_pass) < 8) {
+        $errors[] = 'New password must be at least 8 characters.';
     }
 
     // Check email uniqueness (excluding this user)
@@ -74,38 +63,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chk->fetch()) $errors[] = 'That email is already in use.';
     }
 
-    // Avatar upload
     $avatar = $editUser['avatar'];
-    if (!empty($_FILES['avatar']['name'])) {
-        $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
-            $filename = 'avatar_' . $id . '_' . time() . '.' . $ext;
-            $dest     = __DIR__ . '/../assets/avatars/' . $filename;
-            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $dest)) {
-                // Delete old avatar
-                if (!empty($editUser['avatar']) && file_exists(__DIR__ . '/../assets/avatars/' . $editUser['avatar'])) {
-                    unlink(__DIR__ . '/../assets/avatars/' . $editUser['avatar']);
-                }
-                $avatar = $filename;
-            }
-        } else {
-            $errors[] = 'Avatar must be JPG, PNG, GIF or WEBP.';
+    $newAvatar = null;
+    if (empty($errors)) {
+        $upload = storeAvatarUpload($_FILES['avatar'] ?? [], 'avatar_' . $id);
+        if ($upload['error']) {
+            $errors[] = $upload['error'];
+        } elseif ($upload['filename']) {
+            $newAvatar = $upload['filename'];
+            $avatar = $newAvatar;
         }
     }
 
     if (empty($errors)) {
-        if (!empty($new_pass)) {
-            $hashed = password_hash($new_pass, PASSWORD_DEFAULT);
-            $pdo->prepare('UPDATE users SET name=?, email=?, role=?, department=?, phone=?, job_title=?, avatar=?, status=?, password=?, requires_password_change=1 WHERE id=?')
-                ->execute([$name, $email, $role, $department, $phone, $job_title, $avatar, $status, $hashed, $id]);
-        } else {
-            $pdo->prepare('UPDATE users SET name=?, email=?, role=?, department=?, phone=?, job_title=?, avatar=?, status=? WHERE id=?')
-                ->execute([$name, $email, $role, $department, $phone, $job_title, $avatar, $status, $id]);
+        try {
+            if (!empty($new_pass)) {
+                $hashed = password_hash($new_pass, PASSWORD_DEFAULT);
+                $pdo->prepare('UPDATE users SET name=?, email=?, role=?, department=?, phone=?, job_title=?, avatar=?, status=?, password=?, requires_password_change=1 WHERE id=?')
+                    ->execute([$name, $email, $role, $department, $phone, $job_title, $avatar, $status, $hashed, $id]);
+            } else {
+                $pdo->prepare('UPDATE users SET name=?, email=?, role=?, department=?, phone=?, job_title=?, avatar=?, status=? WHERE id=?')
+                    ->execute([$name, $email, $role, $department, $phone, $job_title, $avatar, $status, $id]);
+            }
+
+            if ($newAvatar && $editUser['avatar'] !== $newAvatar) {
+                deleteAvatarFile($editUser['avatar']);
+            }
+
+            logUserActivity($pdo, $_SESSION['user_id'], 'User Updated', "Updated user: {$email}");
+            $_SESSION['success'] = "User '{$name}' updated successfully.";
+            header('Location: ' . BASE_URL . '/team.php');
+            exit;
+        } catch (Throwable $e) {
+            if ($newAvatar) {
+                deleteAvatarFile($newAvatar);
+            }
+            error_log('Team member update failed: ' . $e->getMessage());
+            $errors[] = 'Failed to update user.';
         }
-        logUserActivity($pdo, $_SESSION['user_id'], 'User Updated', "Updated user: {$email}");
-        $_SESSION['success'] = "User '{$name}' updated successfully.";
-        header('Location: ' . BASE_URL . '/team.php');
-        exit;
     }
 
     // Re-populate $editUser for display
@@ -209,7 +204,7 @@ include '../includes/header.php';
                         <div class="col-md-6">
                             <label class="form-label">New Password</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" name="new_password" id="editUserPass" placeholder="Leave blank to keep current">
+                                <input type="password" class="form-control" name="new_password" id="editUserPass" minlength="8" placeholder="Leave blank to keep current">
                                 <span class="input-group-text bg-light cursor-pointer password-toggle-btn"><i class="bi bi-eye-slash"></i></span>
                             </div>
                         </div>
