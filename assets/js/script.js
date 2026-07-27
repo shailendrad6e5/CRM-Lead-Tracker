@@ -86,14 +86,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const bulkBar       = document.getElementById('bulkActionBar');
     const bulkCount     = document.getElementById('bulkCount');
     const bulkCancelBtn = document.getElementById('bulkCancelBtn');
+    
+    // Load selected leads from session storage to persist across pagination
+    let selectedLeads = JSON.parse(sessionStorage.getItem('crm_selected_leads') || '[]');
 
     function updateBulkBar() {
-        const checked = document.querySelectorAll('.lead-checkbox:checked');
         if (!bulkBar) return;
-        if (checked.length > 0) {
+        if (selectedLeads.length > 0) {
             bulkBar.classList.remove('d-none');
             bulkBar.classList.add('d-flex');
-            bulkCount.textContent = `${checked.length} selected`;
+            bulkCount.textContent = `${selectedLeads.length} selected`;
         } else {
             bulkBar.classList.add('d-none');
             bulkBar.classList.remove('d-flex');
@@ -103,22 +105,48 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (selectAll) {
         selectAll.addEventListener('change', function () {
-            document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = this.checked);
+            document.querySelectorAll('.lead-checkbox').forEach(cb => {
+                cb.checked = this.checked;
+                if (this.checked) {
+                    if (!selectedLeads.includes(cb.value)) selectedLeads.push(cb.value);
+                } else {
+                    selectedLeads = selectedLeads.filter(id => id !== cb.value);
+                }
+            });
+            sessionStorage.setItem('crm_selected_leads', JSON.stringify(selectedLeads));
             updateBulkBar();
         });
     }
 
     document.querySelectorAll('.lead-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateBulkBar);
+        // Initialize checked state from session storage
+        if (selectedLeads.includes(cb.value)) {
+            cb.checked = true;
+        }
+        
+        cb.addEventListener('change', function() {
+            if (this.checked) {
+                if (!selectedLeads.includes(this.value)) selectedLeads.push(this.value);
+            } else {
+                selectedLeads = selectedLeads.filter(id => id !== this.value);
+            }
+            sessionStorage.setItem('crm_selected_leads', JSON.stringify(selectedLeads));
+            updateBulkBar();
+        });
     });
 
     if (bulkCancelBtn) {
         bulkCancelBtn.addEventListener('click', () => {
+            selectedLeads = [];
+            sessionStorage.removeItem('crm_selected_leads');
             document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = false);
             if (selectAll) selectAll.checked = false;
             updateBulkBar();
         });
     }
+    
+    // Run on init
+    updateBulkBar();
 });
 
 // Bulk action submit (global because called via onclick)
@@ -126,12 +154,12 @@ function doBulkAction(type) {
     const form          = document.getElementById('bulkForm');
     const actionInput   = document.getElementById('bulkActionInput');
     const statusSelect  = document.getElementById('bulkStatusSelect');
-    const checked       = document.querySelectorAll('.lead-checkbox:checked');
+    const selectedLeads = JSON.parse(sessionStorage.getItem('crm_selected_leads') || '[]');
 
-    if (checked.length === 0) { alert('Please select at least one lead.'); return; }
+    if (selectedLeads.length === 0) { alert('Please select at least one lead.'); return; }
 
     if (type === 'delete') {
-        if (!confirm(`Are you sure you want to delete ${checked.length} lead(s)? This cannot be undone.`)) return;
+        if (!confirm(`Are you sure you want to delete ${selectedLeads.length} lead(s)? This cannot be undone.`)) return;
         actionInput.value = 'delete';
     } else if (type === 'status') {
         const status = statusSelect.value;
@@ -143,5 +171,20 @@ function doBulkAction(type) {
         if (!assignValue) { alert('Please select a team member to assign to.'); return; }
         actionInput.value = assignValue;
     }
+    
+    // Add hidden inputs for all stored selections
+    // Prevent duplicates by removing the name from the checkboxes first
+    document.querySelectorAll('.lead-checkbox').forEach(cb => cb.removeAttribute('name'));
+    
+    selectedLeads.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_ids[]';
+        input.value = id;
+        form.appendChild(input);
+    });
+
+    // Clear session storage so it doesn't persist to the next page load after action
+    sessionStorage.removeItem('crm_selected_leads');
     form.submit();
 }
