@@ -56,7 +56,7 @@
         <?php include 'sidebar.php'; ?>
         
         <!-- Main Content -->
-        <div id="content" class="w-100 bg-light">
+        <div id="content" class="flex-grow-1 overflow-hidden bg-light">
             <!-- Navbar -->
             <?php include 'navbar.php'; ?>
             

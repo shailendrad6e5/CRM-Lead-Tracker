@@ -10,11 +10,14 @@ $pageTitle  = 'Dashboard';
 $loadCharts = true; // Tell footer.php to include Chart.js
 
 $user_id = $_SESSION['user_id'];
+$isGlobal = hasAnyRole(['admin', 'manager']);
+$where    = $isGlobal ? "1=1" : "assigned_to = ?";
+$params   = $isGlobal ? [] : [$user_id];
 
 // ── Lead status stats ──────────────────────────────────────────────────────
 $stats = ['total'=>0,'new'=>0,'contacted'=>0,'qualified'=>0,'proposal'=>0,'won'=>0,'lost'=>0];
-$stmt  = $pdo->prepare("SELECT status, COUNT(*) as count FROM leads WHERE assigned_to = ? GROUP BY status");
-$stmt->execute([$user_id]);
+$stmt  = $pdo->prepare("SELECT status, COUNT(*) as count FROM leads WHERE $where GROUP BY status");
+$stmt->execute($params);
 while ($row = $stmt->fetch()) {
     $stats['total'] += $row['count'];
     $key = strtolower(str_replace(' ', '_', $row['status']));
@@ -32,12 +35,12 @@ $monthlyStmt = $pdo->prepare("
            DATE_FORMAT(created_at, '%Y-%m') as month_key,
            COUNT(*) as count
     FROM leads
-    WHERE assigned_to = ?
+    WHERE $where
       AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
     GROUP BY month_key, month_label
     ORDER BY month_key ASC
 ");
-$monthlyStmt->execute([$user_id]);
+$monthlyStmt->execute($params);
 $monthlyData   = $monthlyStmt->fetchAll();
 $monthLabels   = array_column($monthlyData, 'month_label');
 $monthCounts   = array_column($monthlyData, 'count');
@@ -45,22 +48,22 @@ $monthCounts   = array_column($monthlyData, 'count');
 // ── Today's follow-ups ─────────────────────────────────────────────────────
 $todayFollowups = [];
 try {
-    $fStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? AND followup_date = CURDATE() AND followup_status != 'Completed' ORDER BY name");
-    $fStmt->execute([$user_id]);
+    $fStmt = $pdo->prepare("SELECT * FROM leads WHERE $where AND followup_date = CURDATE() AND followup_status != 'Completed' ORDER BY name");
+    $fStmt->execute($params);
     $todayFollowups = $fStmt->fetchAll();
 } catch (Exception $e) { /* table may not exist yet */ }
 
 // ── Overdue follow-ups ─────────────────────────────────────────────────────
 $overdueFollowups = [];
 try {
-    $oStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? AND followup_date < CURDATE() AND followup_status != 'Completed' AND status NOT IN ('Won','Lost') ORDER BY followup_date ASC LIMIT 5");
-    $oStmt->execute([$user_id]);
+    $oStmt = $pdo->prepare("SELECT * FROM leads WHERE $where AND followup_date < CURDATE() AND followup_status != 'Completed' AND status NOT IN ('Won','Lost') ORDER BY followup_date ASC LIMIT 5");
+    $oStmt->execute($params);
     $overdueFollowups = $oStmt->fetchAll();
 } catch (Exception $e) { /* table may not exist yet */ }
 
 // ── Recent leads ───────────────────────────────────────────────────────────
-$recentStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? ORDER BY created_at DESC LIMIT 6");
-$recentStmt->execute([$user_id]);
+$recentStmt = $pdo->prepare("SELECT * FROM leads WHERE $where ORDER BY created_at DESC LIMIT 6");
+$recentStmt->execute($params);
 $recentLeads = $recentStmt->fetchAll();
 
 include 'includes/header.php';

@@ -6,14 +6,20 @@ require_once '../includes/helpers.php';
 
 requireLogin();
 
-$pageTitle = 'Leads';
+// Sales Reps can only see their assigned leads — redirect them to My Leads
+if (isSalesRep()) {
+    header('Location: ' . BASE_URL . '/my_leads.php');
+    exit;
+}
+
+$pageTitle = 'All Leads';
 
 // ── Single Delete ───────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id']) && !isset($_POST['bulk_action'])) {
     verifyCsrfToken();
     $id   = (int)$_POST['id'];
-    $stmt = $pdo->prepare("DELETE FROM leads WHERE id = ? AND assigned_to = ?");
-    if ($stmt->execute([$id, $_SESSION['user_id']])) {
+    $stmt = $pdo->prepare("DELETE FROM leads WHERE id = ?");
+    if ($stmt->execute([$id])) {
         $_SESSION['success'] = "Lead deleted successfully.";
     } else {
         $_SESSION['error'] = "Failed to delete lead.";
@@ -33,13 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
         $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
 
         if ($action === 'delete') {
-            $stmt = $pdo->prepare("DELETE FROM leads WHERE id IN ($placeholders) AND assigned_to = ?");
-            $stmt->execute(array_merge($selectedIds, [$_SESSION['user_id']]));
+            $stmt = $pdo->prepare("DELETE FROM leads WHERE id IN ($placeholders)");
+            $stmt->execute($selectedIds);
             $count = $stmt->rowCount();
             $_SESSION['success'] = "$count lead(s) deleted.";
         } elseif (in_array($action, ['New','Contacted','Qualified','Proposal Sent','Won','Lost'])) {
-            $stmt = $pdo->prepare("UPDATE leads SET status=? WHERE id IN ($placeholders) AND assigned_to=?");
-            $stmt->execute(array_merge([$action], $selectedIds, [$_SESSION['user_id']]));
+            $stmt = $pdo->prepare("UPDATE leads SET status=? WHERE id IN ($placeholders)");
+            $stmt->execute(array_merge([$action], $selectedIds));
             $count = $stmt->rowCount();
             $_SESSION['success'] = "$count lead(s) updated to '$action'.";
         }
@@ -49,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
 }
 
 // Build query with filters and search
-$where  = "assigned_to = ?";
-$params = [$_SESSION['user_id']];
+$where  = "1=1";
+$params = [];
 
 $search   = trim($_GET['search']   ?? '');
 $fStatus  = $_GET['status']        ?? '';
@@ -59,46 +65,51 @@ $fSource  = $_GET['source']        ?? '';
 $fFollowUp= $_GET['followup']      ?? '';
 $fDateFrom= $_GET['date_from']     ?? '';
 $fDateTo  = $_GET['date_to']       ?? '';
+$fAssigned= (int)($_GET['assigned_to'] ?? 0);
 
 if (!empty($search)) {
-    $where   .= " AND (name LIKE ? OR company LIKE ? OR email LIKE ? OR phone LIKE ?)";
+    $where   .= " AND (l.name LIKE ? OR l.company LIKE ? OR l.email LIKE ? OR l.phone LIKE ?)";
     $params   = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%"]);
 }
 if (!empty($fStatus)) {
-    $where   .= " AND status = ?";
+    $where   .= " AND l.status = ?";
     $params[] = $fStatus;
 }
 if (!empty($fPriority)) {
-    $where   .= " AND priority = ?";
+    $where   .= " AND l.priority = ?";
     $params[] = $fPriority;
 }
 if (!empty($fSource)) {
-    $where   .= " AND source = ?";
+    $where   .= " AND l.source = ?";
     $params[] = $fSource;
+}
+if ($fAssigned > 0 && canAssignLeads()) {
+    $where   .= " AND l.assigned_to = ?";
+    $params[] = $fAssigned;
 }
 if (!empty($fFollowUp)) {
     if ($fFollowUp === 'Today') {
-        $where .= " AND followup_date = CURRENT_DATE() AND followup_status != 'Completed'";
+        $where .= " AND l.followup_date = CURRENT_DATE() AND l.followup_status != 'Completed'";
     } elseif ($fFollowUp === 'Overdue') {
-        $where .= " AND followup_date < CURRENT_DATE() AND followup_status != 'Completed'";
+        $where .= " AND l.followup_date < CURRENT_DATE() AND l.followup_status != 'Completed'";
     } elseif ($fFollowUp === 'Upcoming') {
-        $where .= " AND followup_date > CURRENT_DATE() AND followup_status != 'Completed'";
+        $where .= " AND l.followup_date > CURRENT_DATE() AND l.followup_status != 'Completed'";
     } elseif ($fFollowUp === 'Completed') {
-        $where .= " AND followup_status = 'Completed'";
+        $where .= " AND l.followup_status = 'Completed'";
     }
 }
 if (!empty($fDateFrom)) {
-    $where   .= " AND DATE(created_at) >= ?";
+    $where   .= " AND DATE(l.created_at) >= ?";
     $params[] = $fDateFrom;
 }
 if (!empty($fDateTo)) {
-    $where   .= " AND DATE(created_at) <= ?";
+    $where   .= " AND DATE(l.created_at) <= ?";
     $params[] = $fDateTo;
 }
 
 // Whitelist sort columns
 $allowedSorts = ['created_at', 'name', 'company', 'status', 'priority'];
-$orderBy  = in_array($_GET['sort'] ?? '', $allowedSorts) ? $_GET['sort'] : 'created_at';
+$orderBy  = in_array($_GET['sort'] ?? '', $allowedSorts) ? 'l.'.$_GET['sort'] : 'l.created_at';
 $orderDir = (strtolower($_GET['dir'] ?? '') === 'asc') ? 'ASC' : 'DESC';
 $nextDir  = ($orderDir === 'ASC') ? 'desc' : 'asc';
 
@@ -120,22 +131,26 @@ $filterParams = http_build_query(array_filter([
     'followup'  => $fFollowUp,
     'date_from' => $fDateFrom,
     'date_to'   => $fDateTo,
+    'assigned_to' => $fAssigned ?: '',
     'sort'      => $orderBy,
     'dir'       => strtolower($orderDir),
     'per_page'  => $limit !== 10 ? $limit : '',
 ]));
 
 // Total count
-$countStmt = $pdo->prepare("SELECT COUNT(*) FROM leads WHERE $where");
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM leads l WHERE $where");
 $countStmt->execute($params);
 $totalRecords = $countStmt->fetchColumn();
 $totalPages   = max(1, (int)ceil($totalRecords / $limit));
 
-// Fetch data
-$sql  = "SELECT * FROM leads WHERE $where ORDER BY $orderBy $orderDir LIMIT $limit OFFSET $offset";
+// Fetch data with assigned user info
+$sql  = "SELECT l.*, u.name as assigned_name, u.role as assigned_role, u.avatar as assigned_avatar FROM leads l LEFT JOIN users u ON l.assigned_to = u.id WHERE $where ORDER BY $orderBy $orderDir LIMIT $limit OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $leads = $stmt->fetchAll();
+
+// Fetch team for filter
+$teamMembers = canAssignLeads() ? getTeamMembers($pdo) : [];
 
 include '../includes/header.php';
 ?>
@@ -202,8 +217,13 @@ include '../includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-filter me-1"></i>Filter</button>
-                    <a href="list.php" class="btn btn-outline-secondary" title="Clear filters"><i class="bi bi-x-lg"></i></a>
+                    <div class="w-100 d-flex flex-column">
+                        <label class="form-label d-none d-md-block mb-1">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-filter me-1"></i>Filter</button>
+                            <a href="list.php" class="btn btn-outline-secondary" title="Clear filters"><i class="bi bi-x-lg"></i></a>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- Date range row -->
@@ -226,7 +246,18 @@ include '../includes/header.php';
                         <option value="Completed" <?= $fFollowUp==='Completed'?'selected':'' ?>>Completed</option>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
+                <?php if (canAssignLeads() && !empty($teamMembers)): ?>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold mb-1">Assigned To</label>
+                    <select name="assigned_to" class="form-select">
+                        <option value="">All Members</option>
+                        <?php foreach ($teamMembers as $tm): ?>
+                        <option value="<?= $tm['id'] ?>" <?= $fAssigned===$tm['id']?'selected':'' ?>><?= htmlspecialchars($tm['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+                <div class="col-md-2 d-flex align-items-end">
                     <small class="text-muted"><?= $totalRecords ?> lead<?= $totalRecords!=1?'s':'' ?> found<?= !empty($filterParams) ? ' (filtered)' : '' ?></small>
                 </div>
             </div>
@@ -276,7 +307,7 @@ include '../includes/header.php';
                     </tr>
                     <?php else: ?>
                         <?php foreach($leads as $lead): ?>
-                        <tr>
+                        <tr onclick="if(!event.target.closest('a') && !event.target.closest('button') && !event.target.closest('input')) window.location='view.php?id=<?= $lead['id'] ?>';" style="cursor: pointer;">
                             <td>
                                 <input type="checkbox" name="selected_ids[]" value="<?= $lead['id'] ?>" class="form-check-input lead-checkbox">
                             </td>
@@ -301,13 +332,25 @@ include '../includes/header.php';
                             </td>
                             <td><span class="badge <?= getStatusBadgeClass($lead['status']) ?>"><?= $lead['status'] ?></span></td>
                             <td class="d-none d-lg-table-cell"><span class="badge <?= getPriorityBadgeClass($lead['priority']) ?>"><?= $lead['priority'] ?></span></td>
+                            <td class="d-none d-xl-table-cell">
+                                <?php if (!empty($lead['assigned_name'])): ?>
+                                <div class="d-flex align-items-center gap-2">
+                                    <?= getUserAvatarHtml(['name'=>$lead['assigned_name'],'avatar'=>$lead['assigned_avatar']??''], 'sm') ?>
+                                    <span class="small text-truncate" style="max-width:100px;"><?= htmlspecialchars($lead['assigned_name']) ?></span>
+                                </div>
+                                <?php else: ?>
+                                <span class="small text-muted">Unassigned</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="d-none d-md-table-cell"><span class="small"><?= date('M d, Y', strtotime($lead['created_at'])) ?></span></td>
                             <td class="text-end">
                                 <a href="view.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-light text-primary border me-1" title="View"><i class="bi bi-eye"></i></a>
                                 <a href="edit.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-light text-warning border me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <?php if (canDeleteLead($lead)): ?>
                                 <button type="button" class="btn btn-sm btn-light text-danger border" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $lead['id'] ?>" data-url="<?= BASE_URL ?>/leads/list.php">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

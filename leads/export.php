@@ -5,9 +5,16 @@ require_once '../includes/auth.php';
 
 requireLogin();
 
-// Build the same filter query as list.php so filters apply to export
-$where  = "assigned_to = ?";
-$params = [$_SESSION['user_id']];
+require_once '../includes/helpers.php';
+
+// Admin/Manager can export all leads; Sales Rep only their own
+if (hasAnyRole(['admin','manager'])) {
+    $where  = "1=1";
+    $params = [];
+} else {
+    $where  = "assigned_to = ?";
+    $params = [$_SESSION['user_id']];
+}
 
 $search    = trim($_GET['search']    ?? '');
 $fStatus   = $_GET['status']         ?? '';

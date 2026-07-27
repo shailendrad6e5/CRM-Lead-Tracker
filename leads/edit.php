@@ -13,16 +13,25 @@ if (!isset($_GET['id'])) {
     exit;
 }
 
-$id = $_GET['id'];
-$stmt = $pdo->prepare("SELECT * FROM leads WHERE id = ? AND assigned_to = ?");
-$stmt->execute([$id, $_SESSION['user_id']]);
+$id = (int)($_GET['id'] ?? 0);
+
+// Admin/manager can edit any lead; sales_rep only their own
+if (hasAnyRole(['admin','manager'])) {
+    $stmt = $pdo->prepare("SELECT * FROM leads WHERE id = ?");
+    $stmt->execute([$id]);
+} else {
+    $stmt = $pdo->prepare("SELECT * FROM leads WHERE id = ? AND assigned_to = ?");
+    $stmt->execute([$id, $_SESSION['user_id']]);
+}
 $lead = $stmt->fetch();
 
 if (!$lead) {
-    $_SESSION['error'] = "Lead not found.";
+    $_SESSION['error'] = "Lead not found or access denied.";
     header("Location: " . BASE_URL . "/leads/list.php");
     exit;
 }
+
+$teamMembers = canAssignLeads() ? getTeamMembers($pdo) : [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrfToken();
@@ -62,15 +71,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['error'] = "Invalid email format.";
     } else {
-        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=?, followup_date=?, followup_time=?, followup_status=?, followup_priority=?, followup_notes=?, completed_at=? WHERE id=? AND assigned_to=?");
-        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $followup_date, $followup_time, $followup_status, $followup_priority, $followup_notes, $completed_at, $id, $_SESSION['user_id']])) {
+        // Handle assignment change (admin/manager only)
+        $new_assigned_to = (int)$lead['assigned_to'];
+        if (canAssignLeads() && !empty($_POST['assigned_to'])) {
+            $new_assigned_to = (int)$_POST['assigned_to'];
+        }
+
+        $assignmentChanged = $new_assigned_to !== (int)$lead['assigned_to'];
+
+        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, assigned_to=?, assigned_by=?, assigned_at=?, notes=?, followup_date=?, followup_time=?, followup_status=?, followup_priority=?, followup_notes=?, completed_at=? WHERE id=?");
+        $assignedAt = $assignmentChanged ? date('Y-m-d H:i:s') : $lead['assigned_at'];
+        $assignedBy = $assignmentChanged ? $_SESSION['user_id'] : $lead['assigned_by'];
+        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $new_assigned_to, $assignedBy, $assignedAt, $notes, $followup_date, $followup_time, $followup_status, $followup_priority, $followup_notes, $completed_at, $id])) {
             // Build activity description
             $changes = [];
-            if ($lead['status']   !== $status)   $changes[] = "Status changed from {$lead['status']} to {$status}";
-            if ($lead['priority'] !== $priority)  $changes[] = "Priority changed from {$lead['priority']} to {$priority}";
+            if ($lead['status']   !== $status)   $changes[] = "Status: {$lead['status']} → {$status}";
+            if ($lead['priority'] !== $priority)  $changes[] = "Priority: {$lead['priority']} → {$priority}";
             if ($lead['name']     !== $name)      $changes[] = "Name updated";
+            if ($assignmentChanged)               $changes[] = "Reassigned to user #{$new_assigned_to}";
             $desc = !empty($changes) ? implode('; ', $changes) : 'Lead details updated';
             logLeadActivity($pdo, $id, $_SESSION['user_id'], 'edited', $desc);
+
+            // Log & notify on reassignment
+            if ($assignmentChanged) {
+                logLeadAssignment($pdo, $id, $new_assigned_to, $_SESSION['user_id'], 'Reassigned via edit');
+                sendNotification($pdo, $new_assigned_to, 'lead_reassigned', 'Lead Reassigned to You',
+                    "Lead '{$name}' has been reassigned to you.", BASE_URL . '/leads/view.php?id=' . $id);
+            }
 
             $_SESSION['success'] = "Lead updated successfully.";
             header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
@@ -189,6 +216,19 @@ include '../includes/header.php';
                         <label for="notes" class="form-label">Notes</label>
                         <textarea class="form-control" id="notes" name="notes" rows="3" maxlength="500"><?= htmlspecialchars($lead['notes'] ?? '') ?></textarea>
                     </div>
+
+                    <?php if (canAssignLeads() && !empty($teamMembers)): ?>
+                    <div class="mb-3">
+                        <label class="form-label">Assign To</label>
+                        <select class="form-select" name="assigned_to">
+                            <?php foreach ($teamMembers as $tm): ?>
+                            <option value="<?= $tm['id'] ?>" <?= (int)$lead['assigned_to']===(int)$tm['id']?'selected':'' ?>>
+                                <?= htmlspecialchars($tm['name']) ?> (<?= getRoleLabel($tm['role']) ?>)
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
 
                     <h5 class="mb-4 text-primary border-bottom pb-2 mt-4"><i class="bi bi-calendar-check me-2"></i>Follow-up</h5>
                     <div class="row mb-3">

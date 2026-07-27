@@ -1,0 +1,94 @@
+<?php
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/helpers.php';
+
+requireLogin();
+requireRole(['admin', 'manager']);
+verifyCsrfToken();
+
+$action   = $_POST['action']  ?? '';
+$targetId = (int)($_POST['user_id'] ?? 0);
+$value    = $_POST['value']   ?? '';
+
+if (!$targetId || $targetId === (int)$_SESSION['user_id']) {
+    $_SESSION['error'] = 'Invalid action or cannot modify your own account.';
+    header('Location: ' . BASE_URL . '/team.php');
+    exit;
+}
+
+// Fetch target user
+$tStmt = $pdo->prepare('SELECT * FROM users WHERE id = ?');
+$tStmt->execute([$targetId]);
+$targetUser = $tStmt->fetch();
+
+if (!$targetUser) {
+    $_SESSION['error'] = 'User not found.';
+    header('Location: ' . BASE_URL . '/team.php');
+    exit;
+}
+
+if ($_SESSION['user_role'] === 'manager' && $targetUser['role'] === 'admin') {
+    $_SESSION['error'] = 'Managers cannot modify Administrator accounts.';
+    header('Location: ' . BASE_URL . '/team.php');
+    exit;
+}
+
+switch ($action) {
+    case 'toggle_status':
+        $newStatus = in_array($value, ['active','inactive','suspended']) ? $value : 'active';
+        $pdo->prepare('UPDATE users SET status = ? WHERE id = ?')->execute([$newStatus, $targetId]);
+        logUserActivity($pdo, $_SESSION['user_id'], 'User Status Changed', "Changed status of {$targetUser['email']} to {$newStatus}.");
+        $label = ucfirst($newStatus);
+        $_SESSION['success'] = "User '{$targetUser['name']}' set to {$label}.";
+        break;
+
+    case 'delete':
+        if ($_SESSION['user_role'] === 'manager') {
+            $_SESSION['error'] = 'Managers cannot delete accounts.';
+            break;
+        }
+
+        // Check if user has assigned leads
+        $leadCheck = $pdo->prepare('SELECT COUNT(*) FROM leads WHERE assigned_to = ?');
+        $leadCheck->execute([$targetId]);
+        if ($leadCheck->fetchColumn() > 0) {
+            $_SESSION['error'] = 'Cannot delete. Please reassign or remove all assigned leads first.';
+            break;
+        }
+
+        // Delete avatar file if exists
+        if (!empty($targetUser['avatar'])) {
+            $avatarPath = __DIR__ . '/../assets/avatars/' . $targetUser['avatar'];
+            if (file_exists($avatarPath)) unlink($avatarPath);
+        }
+        
+        // Delete user
+        $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$targetId]);
+        logUserActivity($pdo, $_SESSION['user_id'], 'User Deleted', "Deleted user account: {$targetUser['email']}");
+        $_SESSION['success'] = "User '{$targetUser['name']}' deleted.";
+        break;
+
+    case 'reset_password':
+        if ($_SESSION['user_role'] === 'manager') {
+            $_SESSION['error'] = 'Managers cannot reset passwords.';
+            break;
+        }
+        if (strlen($value) < 6) {
+            $_SESSION['error'] = 'Password too short.';
+            break;
+        }
+        $hashed = password_hash($value, PASSWORD_DEFAULT);
+        $pdo->prepare('UPDATE users SET password = ?, requires_password_change = 1 WHERE id = ?')->execute([$hashed, $targetId]);
+        logUserActivity($pdo, $_SESSION['user_id'], 'Password Reset', "Reset password for {$targetUser['email']}");
+        $_SESSION['success'] = "Password reset for '{$targetUser['name']}'. They will be forced to change it on next login.";
+        break;
+
+    default:
+        $_SESSION['error'] = 'Unknown action.';
+}
+
+header('Location: ' . BASE_URL . '/team.php');
+exit;
+?>

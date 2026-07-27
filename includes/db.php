@@ -11,11 +11,11 @@ if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_
     $user = 'root';
     $pass = 'MyNewPass123';
 } else {
-    // InfinityFree Live Server Credentials
-    $host = 'sql101.infinityfree.com';
-    $db   = 'if0_42492907_crm_db';
-    $user = 'if0_42492907';
-    $pass = 'ZWCaZdMosYFD';
+    // Live Server Credentials (configure these for your production environment)
+    $host = 'localhost';
+    $db   = 'production_db_name';
+    $user = 'production_db_user';
+    $pass = 'production_db_pass';
 }
 
 $charset = 'utf8mb4';
@@ -32,7 +32,8 @@ try {
     // Make sure MySQL returns dates in the same timezone as PHP (IST +05:30)
     $pdo->exec("SET time_zone = '+05:30'");
 } catch (\PDOException $e) {
-    // In a real app, log the error rather than echoing it.
-    die("Database connection failed: " . $e->getMessage());
+    // Log the error to a file rather than echoing it to visitors
+    error_log("Database connection failed: " . $e->getMessage());
+    die("Database connection failed. Please try again later.");
 }
 ?>

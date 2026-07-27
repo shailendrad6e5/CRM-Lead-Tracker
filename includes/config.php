@@ -4,12 +4,13 @@
 define('SITE_TITLE', 'Lead Management CRM');
 date_default_timezone_set('Asia/Kolkata');
 
-// Base URL for the application
-if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1')) {
-    define('BASE_URL', '/CRM-Lead-Tracker');
-} else {
-    define('BASE_URL', '');
-}
+// Base URL for the application dynamically determined based on file location
+$docRoot = str_replace('\\', '/', rtrim($_SERVER['DOCUMENT_ROOT'], '/\\'));
+$appRoot = str_replace('\\', '/', dirname(__DIR__));
+$baseUrl = str_replace($docRoot, '', $appRoot);
+// Ensure we don't end up with just a slash if it's the root itself
+$baseUrl = ($baseUrl === '/') ? '' : $baseUrl;
+define('BASE_URL', $baseUrl);
 
 // Session configuration for security
 ini_set('session.cookie_httponly', 1);

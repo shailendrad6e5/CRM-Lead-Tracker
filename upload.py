@@ -15,7 +15,7 @@ def upload_dir(ftp, local_path, remote_path):
         pass
 
     for item in os.listdir(local_path):
-        if item in ['.git', '.gitignore', 'README.md', 'database.sql', 'infinityfree_deployment.md', 'fix_pwd.php', 'add_leads.php', 'upload.py']:
+        if item in ['.git', '.gitignore', 'README.md', 'database.sql', 'migration.sql', 'migration_v3.sql', 'migration_v4.sql', 'migration_v5.sql', 'infinityfree_deployment.md', 'fix_pwd.php', 'add_leads.php', 'upload.py']:
             continue
             
         local_item = os.path.join(local_path, item)

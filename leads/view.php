@@ -19,16 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
     $newStatus  = $_POST['quick_status'];
     $valid = ['New','Contacted','Qualified','Proposal Sent','Won','Lost'];
     if (in_array($newStatus, $valid)) {
-        // Get old status first
-        $oldRow = $pdo->prepare("SELECT status FROM leads WHERE id=? AND assigned_to=?");
-        $oldRow->execute([$id, $_SESSION['user_id']]);
-        $oldStatus = $oldRow->fetchColumn();
-
-        $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ? AND assigned_to = ?");
-        $updateStmt->execute([$newStatus, $id, $_SESSION['user_id']]);
+        // Admin/manager can change status on any lead
+        if (hasAnyRole(['admin','manager'])) {
+            $oldRow = $pdo->prepare("SELECT status FROM leads WHERE id=?");
+            $oldRow->execute([$id]);
+            $oldStatus = $oldRow->fetchColumn();
+            $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
+            $updateStmt->execute([$newStatus, $id]);
+        } else {
+            $oldRow = $pdo->prepare("SELECT status FROM leads WHERE id=? AND assigned_to=?");
+            $oldRow->execute([$id, $_SESSION['user_id']]);
+            $oldStatus = $oldRow->fetchColumn();
+            $updateStmt = $pdo->prepare("UPDATE leads SET status = ? WHERE id = ? AND assigned_to = ?");
+            $updateStmt->execute([$newStatus, $id, $_SESSION['user_id']]);
+        }
         logLeadActivity($pdo, $id, $_SESSION['user_id'], 'status_changed', "Status changed from {$oldStatus} to {$newStatus}");
         $_SESSION['success'] = "Lead marked as $newStatus.";
-    }
     }
     header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
     exit;
@@ -60,17 +66,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_note'])) {
 }
 
 // ── Fetch Lead ────────────────────────────────────────────────────────────
-$stmt = $pdo->prepare("
-    SELECT l.*, u.name as assigned_name 
-    FROM leads l 
-    LEFT JOIN users u ON l.assigned_to = u.id 
-    WHERE l.id = ? AND l.assigned_to = ?
-");
-$stmt->execute([$id, $_SESSION['user_id']]);
+// Admin/manager can view any lead; sales_rep only their own
+if (hasAnyRole(['admin','manager'])) {
+    $stmt = $pdo->prepare("
+        SELECT l.*, u.name as assigned_name, u.role as assigned_role, u.avatar as assigned_avatar, u.job_title as assigned_job_title
+        FROM leads l
+        LEFT JOIN users u ON l.assigned_to = u.id
+        WHERE l.id = ?
+    ");
+    $stmt->execute([$id]);
+} else {
+    $stmt = $pdo->prepare("
+        SELECT l.*, u.name as assigned_name, u.role as assigned_role, u.avatar as assigned_avatar, u.job_title as assigned_job_title
+        FROM leads l
+        LEFT JOIN users u ON l.assigned_to = u.id
+        WHERE l.id = ? AND l.assigned_to = ?
+    ");
+    $stmt->execute([$id, $_SESSION['user_id']]);
+}
 $lead = $stmt->fetch();
 
 if (!$lead) {
-    $_SESSION['error'] = "Lead not found.";
+    $_SESSION['error'] = "Lead not found or access denied.";
     header("Location: " . BASE_URL . "/leads/list.php");
     exit;
 }

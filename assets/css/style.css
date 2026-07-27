@@ -98,6 +98,9 @@ h4 { font-size: 20px; font-weight: 500; }
     padding: 12px 16px;
     border: 1px solid #dee2e6;
 }
+.form-control.form-control-sm, .form-select.form-select-sm {
+    padding: 6px 12px !important;
+}
 .form-control, .form-select {
     margin-bottom: 16px; /* Medium gap for forms */
 }
@@ -413,3 +416,67 @@ header, .navbar {
 .followup-today { background-color: rgba(253, 126, 20, 0.15) !important; color: #d96404 !important; border: 1px solid rgba(253, 126, 20, 0.2); }
 .followup-overdue { background-color: rgba(220, 53, 69, 0.15) !important; color: #dc3545 !important; border: 1px solid rgba(220, 53, 69, 0.2); }
 .followup-upcoming { background-color: rgba(22, 138, 173, 0.15) !important; color: #168AAD !important; border: 1px solid rgba(22, 138, 173, 0.2); }
+
+/* ═══════════════════════════════════════════════════
+   10. RBAC — Role Badges
+   ═══════════════════════════════════════════════════ */
+.role-admin {
+    background-color: rgba(220, 53, 69, 0.12) !important;
+    color: #b02a37 !important;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    font-weight: 600;
+}
+.role-manager {
+    background-color: rgba(253, 126, 20, 0.12) !important;
+    color: #c35a00 !important;
+    border: 1px solid rgba(253, 126, 20, 0.25);
+    font-weight: 600;
+}
+.role-sales-rep {
+    background-color: rgba(52, 160, 164, 0.12) !important;
+    color: #1d7a7e !important;
+    border: 1px solid rgba(52, 160, 164, 0.25);
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════
+   11. User Status Indicator Dots
+   ═══════════════════════════════════════════════════ */
+.status-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.user-status-active   { background-color: #28a745; box-shadow: 0 0 0 2px rgba(40,167,69,0.2); }
+.user-status-inactive { background-color: #adb5bd; }
+.user-status-away     { background-color: #fd7e14; box-shadow: 0 0 0 2px rgba(253,126,20,0.2); }
+
+/* ═══════════════════════════════════════════════════
+   12. Avatar Styles
+   ═══════════════════════════════════════════════════ */
+.avatar-ring {
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+/* ═══════════════════════════════════════════════════
+   13. Team Table Hover
+   ═══════════════════════════════════════════════════ */
+.table-hover tbody tr:hover td {
+    background-color: rgba(24, 78, 119, 0.03);
+}
+
+/* ═══════════════════════════════════════════════════
+   14. Notification Bell Animation
+   ═══════════════════════════════════════════════════ */
+@keyframes bellShake {
+    0%, 100% { transform: rotate(0deg); }
+    15%       { transform: rotate(15deg); }
+    30%       { transform: rotate(-12deg); }
+    45%       { transform: rotate(10deg); }
+    60%       { transform: rotate(-8deg); }
+    75%       { transform: rotate(5deg); }
+}
+.bell-shake { animation: bellShake 0.8s ease; }

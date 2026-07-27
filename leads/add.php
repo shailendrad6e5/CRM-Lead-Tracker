@@ -22,7 +22,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $followup_time     = !empty($_POST['followup_time'])  ? $_POST['followup_time']  : null;
     $followup_priority = $_POST['followup_priority'] ?? 'Medium';
     $followup_notes    = trim($_POST['followup_notes'] ?? '');
-    $assigned_to = $_SESSION['user_id'];
+
+    // Assignment — admin/manager can choose; sales_rep gets self-assigned
+    if (canAssignLeads() && !empty($_POST['assigned_to'])) {
+        $assigned_to = (int)$_POST['assigned_to'];
+    } else {
+        $assigned_to = $_SESSION['user_id'];
+    }
 
     // Enum validation
     $valid_statuses  = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
@@ -38,10 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['error'] = "Invalid email format.";
     } else {
-        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, notes, followup_date, followup_time, followup_priority, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $notes, $followup_date, $followup_time, $followup_priority, $followup_notes])) {
+        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, assigned_by, assigned_at, notes, followup_date, followup_time, followup_priority, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)");
+        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $_SESSION['user_id'], $notes, $followup_date, $followup_time, $followup_priority, $followup_notes])) {
             $newId = $pdo->lastInsertId();
-            logLeadActivity($pdo, $newId, $assigned_to, 'created', "Lead created: $name ($company)");
+            logLeadActivity($pdo, $newId, $_SESSION['user_id'], 'created', "Lead created: $name ($company)");
+            // Log assignment history
+            logLeadAssignment($pdo, $newId, $assigned_to, $_SESSION['user_id'], 'Initial assignment on creation');
+            // Notify if assigned to someone else
+            if ($assigned_to !== (int)$_SESSION['user_id']) {
+                sendNotification($pdo, $assigned_to, 'lead_assigned', 'New Lead Assigned',
+                    "Lead '{$name}' has been assigned to you.", BASE_URL . '/leads/view.php?id=' . $newId);
+            }
             $_SESSION['success'] = "Lead added successfully.";
             header("Location: " . BASE_URL . "/leads/view.php?id=" . $newId);
             exit;
@@ -51,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$teamMembers = canAssignLeads() ? getTeamMembers($pdo) : [];
 include '../includes/header.php';
 ?>
 
@@ -153,6 +167,19 @@ include '../includes/header.php';
                     </div>
 
                     <h5 class="mb-4 text-primary border-bottom pb-2 mt-4"><i class="bi bi-calendar-check me-2"></i>Follow-up</h5>
+
+                    <?php if (canAssignLeads() && !empty($teamMembers)): ?>
+                    <div class="mb-3">
+                        <label class="form-label">Assign To</label>
+                        <select class="form-select" name="assigned_to">
+                            <?php foreach ($teamMembers as $tm): ?>
+                            <option value="<?= $tm['id'] ?>" <?= ((int)($_POST['assigned_to']??$_SESSION['user_id']))===(int)$tm['id']?'selected':'' ?>>
+                                <?= htmlspecialchars($tm['name']) ?> (<?= getRoleLabel($tm['role']) ?>)
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="followup_date" class="form-label">Date</label>

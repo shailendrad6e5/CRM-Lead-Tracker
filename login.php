@@ -2,9 +2,11 @@
 require_once 'includes/config.php';
 require_once 'includes/db.php';
 require_once 'includes/auth.php';
+require_once 'includes/helpers.php';
 
 if (isLoggedIn()) {
-    header('Location: ' . BASE_URL . '/dashboard.php');
+    $redirect = hasAnyRole(['admin', 'manager']) ? '/dashboard.php' : '/my_leads.php';
+    header('Location: ' . BASE_URL . $redirect);
     exit;
 }
 
@@ -19,27 +21,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($email) || empty($password)) {
         $error = 'Please enter email and password.';
     } else {
-        $stmt = $pdo->prepare('SELECT id, name, password FROM users WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT id, name, password, role, department, job_title, avatar, status, requires_password_change FROM users WHERE email = ?');
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
         $valid = false;
         if ($user) {
-            if (password_verify($password, $user['password'])) {
-                $valid = true;
-            } elseif ($password === $user['password']) {
-                // Auto-migrate plain-text password to hashed on login
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')->execute([$hash, $user['id']]);
-                $valid = true;
+            // Check account is active
+            if (in_array($user['status'] ?? 'active', ['inactive', 'suspended'])) {
+                $error = 'Your account has been disabled. Please contact your administrator.';
+            } else {
+                if (password_verify($password, $user['password'])) {
+                    $valid = true;
+                } elseif ($password === $user['password']) {
+                    // Auto-migrate plain-text password to hashed on login
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+                    $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')->execute([$hash, $user['id']]);
+                    $valid = true;
+                }
             }
         }
 
         if ($valid) {
             session_regenerate_id(true); // Prevent session fixation
-            $_SESSION['user_id']   = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            header('Location: ' . BASE_URL . '/dashboard.php');
+            $_SESSION['user_id']         = $user['id'];
+            $_SESSION['user_name']       = $user['name'];
+            $_SESSION['user_role']       = $user['role'] ?? 'sales_rep';
+            $_SESSION['user_department'] = $user['department'] ?? '';
+            $_SESSION['user_job_title']  = $user['job_title'] ?? '';
+            $_SESSION['user_avatar']     = $user['avatar'] ?? '';
+            $_SESSION['requires_password_change'] = $user['requires_password_change'] ?? 0;
+            // Update last login
+            $pdo->prepare('UPDATE users SET last_login = NOW() WHERE id = ?')->execute([$user['id']]);
+            logUserActivity($pdo, $user['id'], 'Login', 'User logged in via login form.');
+            
+            $redirect = in_array($user['role'] ?? 'sales_rep', ['admin', 'manager']) ? '/dashboard.php' : '/my_leads.php';
+            header('Location: ' . BASE_URL . $redirect);
             exit;
         } else {
             $error = 'Invalid email or password.';
@@ -111,9 +128,7 @@ $pageTitle = 'Login';
             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Sign In <i class="bi bi-box-arrow-in-right ms-2"></i></button>
         </form>
         
-        <div class="mt-4 text-center small text-muted">
-            Don't have an account? <a href="register.php" class="text-primary text-decoration-none fw-medium">Sign up here</a>
-        </div>
+
         
         <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='admin123';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
             <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Demo Credentials (Click to auto-fill)</p>

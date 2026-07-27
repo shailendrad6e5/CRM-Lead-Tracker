@@ -111,16 +111,16 @@ include 'includes/header.php';
         <h1 class="h3 mb-0 text-gray-800">Follow-ups Hub</h1>
         <p class="text-muted small mb-0">Manage all your scheduled sales calls, meetings, and emails</p>
     </div>
-    <form action="" method="GET" class="d-flex gap-2">
-        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search leads..." value="<?= htmlspecialchars($search) ?>">
-        <select name="priority" class="form-select form-select-sm" style="width:130px;">
+    <form action="" method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+        <input type="text" name="search" class="form-control form-control-sm mb-0" style="width: auto;" placeholder="Search leads..." value="<?= htmlspecialchars($search) ?>">
+        <select name="priority" class="form-select form-select-sm mb-0" style="width: auto; min-width: 140px;">
             <option value="">All Priorities</option>
             <option value="High" <?= $fPriority==='High'?'selected':'' ?>>High</option>
             <option value="Medium" <?= $fPriority==='Medium'?'selected':'' ?>>Medium</option>
             <option value="Low" <?= $fPriority==='Low'?'selected':'' ?>>Low</option>
         </select>
-        <button type="submit" class="btn btn-sm btn-primary">Filter</button>
-        <a href="followups.php" class="btn btn-sm btn-outline-secondary">Clear</a>
+        <button type="submit" class="btn btn-sm btn-primary mb-0">Filter</button>
+        <a href="followups.php" class="btn btn-sm btn-outline-secondary mb-0">Clear</a>
     </form>
 </div>
 
