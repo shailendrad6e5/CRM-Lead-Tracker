@@ -75,29 +75,31 @@ function renderFollowUpCard($lead, $isOverdue = false) {
     $notes = htmlspecialchars($lead['followup_notes'] ?? '');
     $priority = $lead['followup_priority'] ?? 'Medium';
 
+    $notesHtml = !empty($notes) ? "<p class='small text-muted mb-3 p-2 bg-light rounded'><i class='bi bi-info-circle me-1'></i>{$notes}</p>" : "<div class='mb-3'></div>";
+
     return <<<HTML
-    <div class="card shadow-sm mb-3 border-0">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <a href="{$baseUrl}/leads/view.php?id={$id}" class="fw-semibold text-dark text-decoration-none fs-6 d-block">{$name}</a>
-                    <span class="small text-muted"><i class="bi bi-building me-1"></i>{$company}</span>
-                </div>
-                <span class="badge {$pClass}">{$priority}</span>
+<div class="card shadow-sm mb-3 border-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <a href="{$baseUrl}/leads/view.php?id={$id}" class="fw-semibold text-dark text-decoration-none fs-6 d-block">{$name}</a>
+                <span class="small text-muted"><i class="bi bi-building me-1"></i>{$company}</span>
             </div>
-            <div class="d-flex align-items-center mb-2 small text-muted">
-                <i class="bi {$icon} me-2"></i>
-                <span class="fw-medium">{$dateStr} {$timeStr}</span>
-            </div>
-            HTML . (!empty($notes) ? "<p class='small text-muted mb-3 p-2 bg-light rounded'><i class='bi bi-info-circle me-1'></i>{$notes}</p>" : "<div class='mb-3'></div>") . <<<HTML
-            <form method="POST" action="" class="mb-0 text-end">
-                {$csrf}
-                <input type="hidden" name="complete_followup" value="1">
-                <input type="hidden" name="lead_id" value="{$id}">
-                <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check2-all me-1"></i>Complete</button>
-            </form>
+            <span class="badge {$pClass}">{$priority}</span>
         </div>
+        <div class="d-flex align-items-center mb-2 small text-muted">
+            <i class="bi {$icon} me-2"></i>
+            <span class="fw-medium">{$dateStr} {$timeStr}</span>
+        </div>
+        {$notesHtml}
+        <form method="POST" action="" class="mb-0 text-end">
+            {$csrf}
+            <input type="hidden" name="complete_followup" value="1">
+            <input type="hidden" name="lead_id" value="{$id}">
+            <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check2-all me-1"></i>Complete</button>
+        </form>
     </div>
+</div>
 HTML;
 }
 
