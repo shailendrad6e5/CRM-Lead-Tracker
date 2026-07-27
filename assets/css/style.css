@@ -237,3 +237,173 @@ label {
         margin: 16px;
     }
 }
+
+/* ==========================================================================
+   MODERN SAAS UI UPGRADES (Linear / Vercel / Stripe inspired)
+   ========================================================================== */
+
+/* 1. Global Animations & Variables */
+:root {
+    --transition-speed: 0.2s;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+    --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03);
+    --border-soft: 1px solid rgba(0, 0, 0, 0.06);
+    --border-radius-card: 12px;
+    --border-radius-btn: 10px;
+    --border-radius-input: 8px;
+}
+
+/* Base interactive transitions */
+a, button, .btn, .card, .form-control, .form-select, .nav-link, tr, .badge {
+    transition: all var(--transition-speed) ease-in-out !important;
+}
+
+/* 2. Cards */
+.card {
+    border: var(--border-soft) !important;
+    border-radius: var(--border-radius-card) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+.card:hover {
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-2px);
+}
+.card-header {
+    border-bottom: var(--border-soft) !important;
+    padding: 20px 24px !important;
+}
+.card-body {
+    padding: 24px !important;
+}
+
+/* 3. Tables */
+.table-responsive {
+    border: var(--border-soft) !important;
+    border-radius: var(--border-radius-card) !important;
+    background: var(--card-bg);
+}
+.table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+.table th {
+    background-color: rgba(0,0,0,0.02) !important;
+    border-bottom: var(--border-soft) !important;
+    font-weight: 600 !important;
+    color: #495057 !important;
+    text-transform: uppercase !important;
+    font-size: 11px !important;
+    letter-spacing: 0.8px !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.table td {
+    border-bottom: 1px solid rgba(0,0,0,0.04) !important;
+}
+.table tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.01) !important;
+}
+.table tbody tr:hover {
+    background-color: rgba(24, 78, 119, 0.04) !important; /* Soft primary tint */
+}
+.table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* 4. Buttons */
+.btn {
+    border-radius: var(--border-radius-btn) !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+}
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm) !important;
+}
+.btn:active {
+    transform: translateY(0);
+}
+.btn-primary {
+    background-color: var(--primary-100) !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+}
+.btn-primary:hover {
+    background-color: var(--primary-200) !important;
+    box-shadow: 0 4px 12px rgba(24, 78, 119, 0.2) !important;
+}
+
+/* 5. Forms */
+.form-control, .form-select, .input-group-text {
+    border-radius: var(--border-radius-input) !important;
+    border: 1px solid rgba(0,0,0,0.12) !important;
+    background-color: #ffffff !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.01) !important;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-200) !important;
+    box-shadow: 0 0 0 3px rgba(24, 78, 119, 0.15), inset 0 1px 2px rgba(0,0,0,0.02) !important;
+    background-color: #ffffff !important;
+}
+label {
+    font-weight: 600 !important;
+    color: #343a40 !important;
+}
+
+/* 6. Badges */
+.badge {
+    border-radius: 50rem !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+}
+.status-new { background-color: rgba(22, 138, 173, 0.15) !important; color: #168AAD !important; border: 1px solid rgba(22, 138, 173, 0.2); }
+.status-contacted { background-color: rgba(30, 96, 145, 0.15) !important; color: #1E6091 !important; border: 1px solid rgba(30, 96, 145, 0.2); }
+.status-qualified { background-color: rgba(82, 182, 154, 0.15) !important; color: #3d8a74 !important; border: 1px solid rgba(82, 182, 154, 0.2); }
+.status-proposal { background-color: rgba(52, 160, 164, 0.15) !important; color: #287c80 !important; border: 1px solid rgba(52, 160, 164, 0.2); }
+.status-won { background-color: rgba(153, 217, 140, 0.2) !important; color: #2c7a1f !important; border: 1px solid rgba(153, 217, 140, 0.3); }
+.status-lost { background-color: rgba(108, 117, 125, 0.15) !important; color: #495057 !important; border: 1px solid rgba(108, 117, 125, 0.2); }
+.priority-high { background-color: rgba(220, 53, 69, 0.15) !important; color: #dc3545 !important; border: 1px solid rgba(220, 53, 69, 0.2); }
+.priority-medium { background-color: rgba(253, 126, 20, 0.15) !important; color: #d96404 !important; border: 1px solid rgba(253, 126, 20, 0.2); }
+.priority-low { background-color: rgba(52, 160, 164, 0.15) !important; color: #287c80 !important; border: 1px solid rgba(52, 160, 164, 0.2); }
+
+/* 7. Sidebar & Navbar */
+#sidebar {
+    border-right: var(--border-soft) !important;
+}
+.sidebar-header {
+    border-bottom: var(--border-soft) !important;
+    padding-bottom: 24px !important;
+}
+.nav-link {
+    border-radius: 8px !important;
+    color: #495057 !important;
+}
+.nav-link:hover:not(.active) {
+    background-color: rgba(0,0,0,0.03) !important;
+    color: #212529 !important;
+}
+.nav-link.active {
+    background-color: rgba(24, 78, 119, 0.08) !important;
+    color: var(--primary-100) !important;
+    font-weight: 600 !important;
+}
+header, .navbar {
+    border-bottom: var(--border-soft) !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+/* 8. Toasts & Modals */
+.toast, .modal-content {
+    border: var(--border-soft) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+.toast-header, .modal-header {
+    border-bottom: var(--border-soft) !important;
+}
+.toast-body, .modal-body {
+    padding: 20px !important;
+}
