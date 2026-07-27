@@ -137,6 +137,11 @@ function doBulkAction(type) {
         const status = statusSelect.value;
         if (!status) { alert('Please select a status to apply.'); return; }
         actionInput.value = status;
+    } else if (type === 'assign') {
+        const assignSelect = document.getElementById('bulkAssignSelect');
+        const assignValue = assignSelect ? assignSelect.value : '';
+        if (!assignValue) { alert('Please select a team member to assign to.'); return; }
+        actionInput.value = assignValue;
     }
     form.submit();
 }

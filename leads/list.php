@@ -48,6 +48,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
             $stmt->execute(array_merge([$action], $selectedIds));
             $count = $stmt->rowCount();
             $_SESSION['success'] = "$count lead(s) updated to '$action'.";
+        } elseif (strpos($action, 'assign_') === 0 && canAssignLeads()) {
+            $assignTo = (int)str_replace('assign_', '', $action);
+            if ($assignTo > 0) {
+                $stmt = $pdo->prepare("UPDATE leads SET assigned_to=? WHERE id IN ($placeholders)");
+                $stmt->execute(array_merge([$assignTo], $selectedIds));
+                $count = $stmt->rowCount();
+                foreach($selectedIds as $lead_id) {
+                    logLeadActivity($pdo, $lead_id, $_SESSION['user_id'], 'Reassigned', "Lead bulk reassigned to User ID $assignTo.");
+                }
+                $_SESSION['success'] = "$count lead(s) assigned successfully.";
+            }
         }
     }
     header("Location: " . BASE_URL . "/leads/list.php");
@@ -363,6 +374,16 @@ include '../includes/header.php';
         <div id="bulkActionBar" class="d-none border-top bg-light p-3 d-flex align-items-center gap-3">
             <span class="fw-medium text-muted small" id="bulkCount">0 selected</span>
             <div class="vr"></div>
+            <?php if (canAssignLeads() && !empty($teamMembers)): ?>
+            <select class="form-select form-select-sm" id="bulkAssignSelect" style="width:160px;">
+                <option value="">Assign To...</option>
+                <?php foreach ($teamMembers as $tm): ?>
+                <option value="assign_<?= $tm['id'] ?>"><?= htmlspecialchars($tm['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="button" onclick="doBulkAction('assign')" class="btn btn-sm btn-outline-primary"><i class="bi bi-person-check me-1"></i>Assign</button>
+            <div class="vr"></div>
+            <?php endif; ?>
             <select class="form-select form-select-sm" id="bulkStatusSelect" style="width:160px;">
                 <option value="">Change Status...</option>
                 <?php foreach(['New','Contacted','Qualified','Proposal Sent','Won','Lost'] as $s): ?>
