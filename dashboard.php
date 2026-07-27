@@ -165,7 +165,7 @@ include 'includes/header.php';
                             <tr>
                                 <th>Name</th>
                                 <th>Status</th>
-                                <th>Priority</th>
+                                <th class="d-none d-md-table-cell">Priority</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
@@ -186,7 +186,7 @@ include 'includes/header.php';
                                         <div class="small text-muted"><?= htmlspecialchars($lead['company'] ?? '') ?></div>
                                     </td>
                                     <td><span class="badge <?= getStatusBadgeClass($lead['status']) ?>"><?= $lead['status'] ?></span></td>
-                                    <td><span class="badge <?= getPriorityBadgeClass($lead['priority']) ?>"><?= $lead['priority'] ?></span></td>
+                                    <td class="d-none d-md-table-cell"><span class="badge <?= getPriorityBadgeClass($lead['priority']) ?>"><?= $lead['priority'] ?></span></td>
                                     <td class="text-end">
                                         <a href="<?= BASE_URL ?>/leads/view.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-light text-primary"><i class="bi bi-eye"></i></a>
                                     </td>
