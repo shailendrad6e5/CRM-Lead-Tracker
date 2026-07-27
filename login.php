@@ -153,17 +153,17 @@ $pageTitle = 'Login';
                 </div>
                 <div class="p-2 border rounded text-center small cursor-pointer demo-btn" 
                      style="transition: all 0.2s; background: rgba(255,255,255,0.05);"
-                     onclick="document.getElementById('email').value='manager@example.com'; document.getElementById('password').value='SecurePass2026!';" 
+                     onclick="document.getElementById('email').value='manager@example.com'; document.getElementById('password').value='manager123';" 
                      onmouseover="this.style.background='rgba(255,255,255,0.1)';" 
                      onmouseout="this.style.background='rgba(255,255,255,0.05)';">
                     <span class="fw-bold text-success">Manager:</span> manager@example.com
                 </div>
                 <div class="p-2 border rounded text-center small cursor-pointer demo-btn" 
                      style="transition: all 0.2s; background: rgba(255,255,255,0.05);"
-                     onclick="document.getElementById('email').value='sales@example.com'; document.getElementById('password').value='SecurePass2026!';" 
+                     onclick="document.getElementById('email').value='saleperson1@example.com'; document.getElementById('password').value='sales@123';" 
                      onmouseover="this.style.background='rgba(255,255,255,0.1)';" 
                      onmouseout="this.style.background='rgba(255,255,255,0.05)';">
-                    <span class="fw-bold text-warning">Sales:</span> sales@example.com
+                    <span class="fw-bold text-warning">Sales:</span> saleperson1@example.com
                 </div>
             </div>
         </div>
