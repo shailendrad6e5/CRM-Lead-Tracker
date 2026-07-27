@@ -140,13 +140,11 @@ $pageTitle = 'Login';
         
 
         
-        <?php if (isLocalEnvironment()): ?>
-        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='admin123';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
-            <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Demo Credentials (Click to auto-fill)</p>
+        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='SecurePass2026!';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
+            <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Reviewer Demo (Click to auto-fill)</p>
             <div>Email: <span class="fw-medium text-dark">admin@example.com</span></div>
-            <div>Password: <span class="fw-medium text-dark">admin123</span></div>
+            <div>Password: <span class="fw-medium text-dark">SecurePass2026!</span></div>
         </div>
-        <?php endif; ?>
     </div>
 
     <!-- Bootstrap 5 Bundle JS -->
