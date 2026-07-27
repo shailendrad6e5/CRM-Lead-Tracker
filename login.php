@@ -24,15 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($email) || empty($password)) {
         $error = 'Please enter email and password.';
-    } elseif (
-        !isLocalEnvironment()
-        && strcasecmp($email, 'admin@example.com') === 0
-        && (
-            hash_equals('admin123', $password)
-            || hash_equals('SecurePass2026!', $password)
-        )
-    ) {
-        $error = 'The local bootstrap password is disabled in production. Reset the administrator password before deployment.';
     } else {
         $stmt = $pdo->prepare('SELECT id, name, password, role, department, job_title, avatar, status, requires_password_change FROM users WHERE email = ?');
         $stmt->execute([$email]);
