@@ -1,73 +1,53 @@
-# Lead Management CRM
+# 🚀 Mini CRM Lead Tracker
 
-A complete, production-quality Lead Management CRM built using PHP, MySQL, Bootstrap 5, HTML5, CSS3, and Vanilla JavaScript. Designed to look like a modern SaaS dashboard.
+A modern, production-ready Lead Management CRM built with PHP 8+, MySQL, and Vanilla JavaScript. Designed with a sleek, responsive dark-mode UI inspired by modern SaaS applications, this CRM provides a complete suite of tools for managing leads, tracking activities, and collaborating across a sales team.
 
-## Features
-- **Dashboard**: High-level statistics, pipeline progress, and recent leads.
-- **Lead Management**: Full CRUD (Create, Read, Update, Delete) operations for leads.
-- **Search & Filter**: Search leads by name, company, email, phone, and filter by status or priority.
-- **Authentication**: Secure login system using hashed passwords and PHP sessions.
-- **Profile**: Update admin information and change password.
-- **Modern UI**: Clean layout, custom CSS properties, Bootstrap 5 components, and Bootstrap Icons.
-- **Responsive**: Fully responsive design for mobile, tablet, and desktop views.
+🌐 **Live Demo:** [lead-tracker.infinityfree.me](http://lead-tracker.infinityfree.me) *(Update URL if different)*
 
-## Technologies Used
-- **Frontend**: HTML5, CSS3, Bootstrap 5, Vanilla JavaScript (No jQuery).
-- **Backend**: PHP 8+, MySQL (PDO with Prepared Statements).
-- **Icons**: Bootstrap Icons.
-- **Fonts**: Inter (Google Fonts).
+## ✨ Key Features
+- **Role-Based Access Control (RBAC):** Distinct permissions and views for Admins, Managers, and Sales Reps.
+- **Advanced Lead Management:** Full CRUD operations, status pipelines, and priority filtering.
+- **Activity Timeline & Logging:** Automatically tracks who did what (lead assignments, status changes) to maintain a clear audit trail.
+- **Follow-up Reminders & Notes:** Schedule follow-ups, leave internal notes, and track communication history.
+- **Sleek Dark Mode UI:** Premium "Ocean Palette" design featuring smooth micro-animations, glassmorphism, and responsive layouts.
+- **Interactive Dashboard:** High-level statistics, pipeline progress, and recent leads.
+- **Live Notifications:** Alert system for newly assigned leads and upcoming tasks.
 
-## Folder Structure
-```
-lead-management-crm/
-├── assets/
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       └── script.js
-├── includes/
-│   ├── auth.php
-│   ├── config.php
-│   ├── db.php
-│   ├── footer.php
-│   ├── header.php
-│   ├── navbar.php
-│   └── sidebar.php
-├── leads/
-│   ├── add.php
-│   ├── edit.php
-│   ├── list.php
-│   └── view.php
-├── dashboard.php
-├── full_database_install.sql
-├── index.php
-├── login.php
-├── logout.php
-├── profile.php
-└── README.md
-```
+## 🔒 Enterprise-Grade Security
+- **Strict CSRF Protection:** Custom session-backed CSRF tokens with secure `Cache-Control` enforcement.
+- **Secure Authentication:** `password_hash()` (Bcrypt), session regeneration, and Brute-Force prevention.
+- **SQL Injection Prevention:** 100% PDO Prepared Statements.
+- **XSS & Clickjacking Defense:** Advanced Content-Security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`).
 
-## Installation Steps
-1. **Clone or Download** the repository to your local server (e.g., inside `C:\xampp\htdocs\CRM-Lead-Tracker`).
+## 🛠️ Technologies Used
+- **Frontend:** HTML5, Custom CSS3 (CSS Variables, Flexbox/Grid), Bootstrap 5, Vanilla JavaScript.
+- **Backend:** PHP 8+, MySQL (InnoDB Relational Database).
+- **Icons & Typography:** Bootstrap Icons, Inter (Google Fonts).
+
+## 🚀 Live Demo Credentials
+Visit the live demo link to test the application. You can use the one-click auto-fill buttons on the login page, or manually use the following credentials to test different RBAC permission levels:
+- **Admin Role:** `admin@example.com` / `SecurePass2026!`
+- **Manager Role:** `manager@example.com` / `manager123`
+- **Sales Rep Role:** `saleperson1@example.com` / `sales@123`
+
+## 📦 Local Installation
+1. **Clone the repository** to your local server directory (e.g., `htdocs` for XAMPP).
 2. **Database Setup**:
-   - Open phpMyAdmin (e.g., `http://localhost/phpmyadmin`).
-   - For a **new installation**, import `full_database_install.sql`. It creates the complete current schema.
-   - The repository contains one complete installer; separate legacy migration files are not required.
-3. **Database Configuration**:
-   - Copy `includes/local_config.example.php` to `includes/local_config.php` and enter your local database credentials.
-   - On a deployed server, prefer `CRM_DB_HOST`, `CRM_DB_NAME`, `CRM_DB_USER`, and `CRM_DB_PASSWORD` environment variables.
-   - Set `CRM_APP_ENV=production` in production. Never commit `includes/local_config.php` or `.env` files.
-4. **Access the CRM**:
-   - Open your browser and navigate to `http://localhost/CRM-Lead-Tracker`.
+   - Open phpMyAdmin and create a new database (e.g., `crm_lead_tracker`).
+   - Import the `full_database_install.sql` file to instantly set up all tables and relationships.
+3. **Configuration**:
+   - Ensure your local database credentials match those configured in `includes/db.php` or your environment config.
+   - For production, use environment variables (`CRM_DB_HOST`, `CRM_DB_NAME`, `CRM_DB_USER`, `CRM_DB_PASSWORD`).
+4. **Run**: Access `http://localhost/CRM-Lead-Tracker` in your browser.
 
-## Default Login Credentials
-- These credentials are for the local project demo.
-- **Email**: admin@example.com
-- **Password**: SecurePass2026!
-- The local demo account has administrator access.
-
-## Security Implemented
-- **Password Hashing**: Uses PHP's `password_hash()` and `password_verify()`.
-- **SQL Injection Prevention**: Uses PDO prepared statements for all database queries.
-- **Session Protection**: Validates session presence on all protected pages.
-- **XSS Protection**: Uses `htmlspecialchars()` when outputting user data.
+## 📂 Folder Structure
+```text
+CRM-Lead-Tracker/
+├── assets/             # CSS styling and Vanilla JS scripts
+├── includes/           # Core PHP logic (auth, db config, csrf protection)
+├── leads/              # Lead management views and logic (CRUD operations)
+├── team/               # User management and RBAC logic
+├── dashboard.php       # Main analytics and high-level view
+├── login.php           # Secure authentication entry point
+└── full_database_install.sql # Complete database schema for installation
+```
