@@ -141,10 +141,31 @@ $pageTitle = 'Login';
         
 
         
-        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='SecurePass2026!';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
-            <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Reviewer Demo (Click to auto-fill)</p>
-            <div>Email: <span class="fw-medium text-dark">admin@example.com</span></div>
-            <div>Password: <span class="fw-medium text-dark">SecurePass2026!</span></div>
+        <div class="mt-4">
+            <p class="text-center small text-muted mb-2 fw-semibold"><i class="bi bi-info-circle me-1"></i> Demo Credentials (Click to auto-fill)</p>
+            <div class="d-flex flex-column gap-2">
+                <div class="p-2 border rounded text-center small cursor-pointer demo-btn" 
+                     style="transition: all 0.2s; background: rgba(255,255,255,0.05);"
+                     onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='SecurePass2026!';" 
+                     onmouseover="this.style.background='rgba(255,255,255,0.1)';" 
+                     onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                    <span class="fw-bold text-primary">Admin:</span> admin@example.com
+                </div>
+                <div class="p-2 border rounded text-center small cursor-pointer demo-btn" 
+                     style="transition: all 0.2s; background: rgba(255,255,255,0.05);"
+                     onclick="document.getElementById('email').value='manager@example.com'; document.getElementById('password').value='SecurePass2026!';" 
+                     onmouseover="this.style.background='rgba(255,255,255,0.1)';" 
+                     onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                    <span class="fw-bold text-success">Manager:</span> manager@example.com
+                </div>
+                <div class="p-2 border rounded text-center small cursor-pointer demo-btn" 
+                     style="transition: all 0.2s; background: rgba(255,255,255,0.05);"
+                     onclick="document.getElementById('email').value='sales@example.com'; document.getElementById('password').value='SecurePass2026!';" 
+                     onmouseover="this.style.background='rgba(255,255,255,0.1)';" 
+                     onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                    <span class="fw-bold text-warning">Sales:</span> sales@example.com
+                </div>
+            </div>
         </div>
     </div>
 
