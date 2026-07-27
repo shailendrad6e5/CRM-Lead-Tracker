@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form action="" method="POST" class="needs-validation" novalidate>
-            <?= getCsrfField() ?>
+            <?= csrfField() ?>
             
             <div class="mb-3">
                 <label for="password" class="form-label">New Password</label>
