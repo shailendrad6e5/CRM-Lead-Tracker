@@ -24,9 +24,6 @@ function verifyCsrfToken(): void {
         http_response_code(403);
         die('403 Forbidden: Invalid CSRF token. Please go back and try again.');
     }
-
-    // Rotate the token after successful validation
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 /**
