@@ -51,11 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
         } elseif (strpos($action, 'assign_') === 0 && canAssignLeads()) {
             $assignTo = (int)str_replace('assign_', '', $action);
             if ($assignTo > 0) {
+                $stmtName = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+                $stmtName->execute([$assignTo]);
+                $assignName = $stmtName->fetchColumn();
+                $assignNameStr = $assignName ? $assignName : "User ID $assignTo";
+
                 $stmt = $pdo->prepare("UPDATE leads SET assigned_to=? WHERE id IN ($placeholders)");
                 $stmt->execute(array_merge([$assignTo], $selectedIds));
                 $count = $stmt->rowCount();
                 foreach($selectedIds as $lead_id) {
-                    logLeadActivity($pdo, $lead_id, $_SESSION['user_id'], 'Reassigned', "Lead bulk reassigned to User ID $assignTo.");
+                    logLeadActivity($pdo, $lead_id, $_SESSION['user_id'], 'Reassigned', "Lead bulk reassigned to $assignNameStr.");
                 }
                 $_SESSION['success'] = "$count lead(s) assigned successfully.";
             }
