@@ -221,20 +221,20 @@ include '../includes/header.php';
                             <input type="checkbox" id="selectAll" class="form-check-input" title="Select all">
                         </th>
                         <?php
-                        function sortLink($col, $label, $currentSort, $currentDir, $filterParams) {
+                        function sortLink($col, $label, $currentSort, $currentDir, $filterParams, $extraClass = '') {
                             $dir = ($currentSort === $col && $currentDir === 'ASC') ? 'desc' : 'asc';
                             $icon = ($currentSort === $col) ? ($currentDir === 'ASC' ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up';
                             $qs = $filterParams ? $filterParams . '&' : '';
-                            return "<th><a href=\"?{$qs}sort={$col}&dir={$dir}\" class=\"text-decoration-none text-dark fw-semibold\">{$label} <i class=\"bi {$icon} small ms-1\"></i></a></th>";
+                            return "<th class=\"{$extraClass}\"><a href=\"?{$qs}sort={$col}&dir={$dir}\" class=\"text-decoration-none text-dark fw-semibold\">{$label} <i class=\"bi {$icon} small ms-1\"></i></a></th>";
                         }
                         echo sortLink('name',       'Name',     $orderBy, $orderDir, $filterParams);
-                        echo sortLink('company',    'Company',  $orderBy, $orderDir, $filterParams);
+                        echo sortLink('company',    'Company',  $orderBy, $orderDir, $filterParams, 'd-none d-md-table-cell');
                         ?>
                         <th>Contact</th>
                         <?php
                         echo sortLink('status',   'Status',   $orderBy, $orderDir, $filterParams);
-                        echo sortLink('priority', 'Priority', $orderBy, $orderDir, $filterParams);
-                        echo sortLink('created_at','Date',    $orderBy, $orderDir, $filterParams);
+                        echo sortLink('priority', 'Priority', $orderBy, $orderDir, $filterParams, 'd-none d-lg-table-cell');
+                        echo sortLink('created_at','Date',    $orderBy, $orderDir, $filterParams, 'd-none d-md-table-cell');
                         ?>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -263,7 +263,7 @@ include '../includes/header.php';
                                 <span class="badge bg-warning text-dark" style="font-size:9px;"><i class="bi bi-alarm me-1"></i>Follow-up <?= $lead['followup_date'] === date('Y-m-d') ? 'Today' : 'Overdue' ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td class="d-none d-md-table-cell">
                                 <div class="small text-muted"><i class="bi bi-building me-1"></i><?= htmlspecialchars($lead['company'] ?? 'N/A') ?></div>
                             </td>
                             <td>
@@ -271,8 +271,8 @@ include '../includes/header.php';
                                 <div class="small"><i class="bi bi-telephone me-1 text-muted"></i><?= htmlspecialchars($lead['phone'] ?? 'N/A') ?></div>
                             </td>
                             <td><span class="badge <?= getStatusBadgeClass($lead['status']) ?>"><?= $lead['status'] ?></span></td>
-                            <td><span class="badge <?= getPriorityBadgeClass($lead['priority']) ?>"><?= $lead['priority'] ?></span></td>
-                            <td><span class="small"><?= date('M d, Y', strtotime($lead['created_at'])) ?></span></td>
+                            <td class="d-none d-lg-table-cell"><span class="badge <?= getPriorityBadgeClass($lead['priority']) ?>"><?= $lead['priority'] ?></span></td>
+                            <td class="d-none d-md-table-cell"><span class="small"><?= date('M d, Y', strtotime($lead['created_at'])) ?></span></td>
                             <td class="text-end">
                                 <a href="view.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-light text-primary border me-1" title="View"><i class="bi bi-eye"></i></a>
                                 <a href="edit.php?id=<?= $lead['id'] ?>" class="btn btn-sm btn-light text-warning border me-1" title="Edit"><i class="bi bi-pencil"></i></a>
