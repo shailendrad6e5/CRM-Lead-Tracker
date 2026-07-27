@@ -60,11 +60,11 @@ lead-management-crm/
 4. **Access the CRM**:
    - Open your browser and navigate to `http://localhost/CRM-Lead-Tracker`.
 
-## Reviewer Demo Credentials
-- These credentials are for the restricted project reviewer account.
-- **Email**: reviewer@example.com
+## Default Login Credentials
+- These credentials are for the local project demo.
+- **Email**: admin@example.com
 - **Password**: SecurePass2026!
-- The reviewer account has sales-representative access only.
+- The local demo account has administrator access.
 
 ## Security Implemented
 - **Password Hashing**: Uses PHP's `password_hash()` and `password_verify()`.

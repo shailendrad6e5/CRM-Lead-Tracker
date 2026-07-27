@@ -174,13 +174,6 @@ ALTER TABLE `users`
     ADD COLUMN IF NOT EXISTS `requires_password_change` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Force password change on next login' AFTER `password`,
     ADD COLUMN IF NOT EXISTS `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last profile update timestamp' AFTER `created_at`;
 
--- Restricted account for public project reviews. It intentionally has the
--- sales representative role and can only access its own assigned leads.
-INSERT IGNORE INTO `users`
-    (`name`, `email`, `password`, `role`, `status`, `requires_password_change`)
-VALUES
-    ('Project Reviewer', 'reviewer@example.com', '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS', 'sales_rep', 'active', 0);
-
 -- 2. Create `user_activities` table
 CREATE TABLE IF NOT EXISTS `user_activities` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
