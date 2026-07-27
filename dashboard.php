@@ -307,20 +307,35 @@ include 'includes/header.php';
 <?php if ($stats['total'] > 0): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Color palette matching style.css
-    const colors = {
-        new:       '#168AAD',
-        contacted: '#1E6091',
-        qualified: '#52B69A',
-        proposal:  '#34A0A4',
-        won:       '#99D98C',
-        lost:      '#6c757d'
-    };
+    function appearanceColors() {
+        const styles = getComputedStyle(document.documentElement);
+        return {
+            statuses: [
+                styles.getPropertyValue('--chart-new').trim(),
+                styles.getPropertyValue('--chart-contacted').trim(),
+                styles.getPropertyValue('--chart-qualified').trim(),
+                styles.getPropertyValue('--chart-proposal').trim(),
+                styles.getPropertyValue('--chart-won').trim(),
+                styles.getPropertyValue('--chart-lost').trim()
+            ],
+            primaryRgb: styles.getPropertyValue('--primary-rgb').trim(),
+            primary: styles.getPropertyValue('--primary-300').trim(),
+            border: styles.getPropertyValue('--chart-border').trim(),
+            grid: styles.getPropertyValue('--chart-grid').trim(),
+            text: styles.getPropertyValue('--chart-text').trim()
+        };
+    }
+
+    let colors = appearanceColors();
+    Chart.defaults.color = colors.text;
+    Chart.defaults.borderColor = colors.grid;
+    let statusChart = null;
+    let monthlyChart = null;
 
     // ── Doughnut: Status distribution ──────────────────────────────────
     const statusCtx = document.getElementById('statusChart');
     if (statusCtx) {
-        new Chart(statusCtx, {
+        statusChart = new Chart(statusCtx, {
             type: 'doughnut',
             data: {
                 labels: ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'],
@@ -333,9 +348,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         <?= $stats['won'] ?>,
                         <?= $stats['lost'] ?>
                     ],
-                    backgroundColor: Object.values(colors),
+                    backgroundColor: colors.statuses,
                     borderWidth: 2,
-                    borderColor: '#fff',
+                    borderColor: colors.border,
                     hoverOffset: 8
                 }]
             },
@@ -345,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { font: { family: 'Inter', size: 11 }, padding: 12, boxWidth: 12 }
+                        labels: { color: colors.text, font: { family: 'Inter', size: 11 }, padding: 12, boxWidth: 12 }
                     }
                 }
             }
@@ -356,15 +371,15 @@ document.addEventListener('DOMContentLoaded', function () {
     <?php if (!empty($monthlyData)): ?>
     const monthlyCtx = document.getElementById('monthlyChart');
     if (monthlyCtx) {
-        new Chart(monthlyCtx, {
+        monthlyChart = new Chart(monthlyCtx, {
             type: 'bar',
             data: {
                 labels: <?= json_encode($monthLabels) ?>,
                 datasets: [{
                     label: 'Leads Added',
                     data: <?= json_encode($monthCounts) ?>,
-                    backgroundColor: 'rgba(22, 138, 173, 0.25)',
-                    borderColor: '#168AAD',
+                    backgroundColor: `rgba(${colors.primaryRgb}, 0.25)`,
+                    borderColor: colors.primary,
                     borderWidth: 2,
                     borderRadius: 6,
                     borderSkipped: false
@@ -377,11 +392,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { stepSize: 1, font: { family: 'Inter', size: 11 } },
-                        grid: { color: 'rgba(0,0,0,0.05)' }
+                        ticks: { color: colors.text, stepSize: 1, font: { family: 'Inter', size: 11 } },
+                        grid: { color: colors.grid }
                     },
                     x: {
-                        ticks: { font: { family: 'Inter', size: 11 } },
+                        ticks: { color: colors.text, font: { family: 'Inter', size: 11 } },
                         grid: { display: false }
                     }
                 }
@@ -389,6 +404,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     <?php endif; ?>
+
+    window.addEventListener('crmappearancechange', function () {
+        colors = appearanceColors();
+
+        if (statusChart) {
+            statusChart.data.datasets[0].backgroundColor = colors.statuses;
+            statusChart.data.datasets[0].borderColor = colors.border;
+            statusChart.options.plugins.legend.labels.color = colors.text;
+            statusChart.update();
+        }
+
+        if (monthlyChart) {
+            monthlyChart.data.datasets[0].backgroundColor = `rgba(${colors.primaryRgb}, 0.25)`;
+            monthlyChart.data.datasets[0].borderColor = colors.primary;
+            monthlyChart.options.scales.y.ticks.color = colors.text;
+            monthlyChart.options.scales.y.grid.color = colors.grid;
+            monthlyChart.options.scales.x.ticks.color = colors.text;
+            monthlyChart.update();
+        }
+    });
 });
 </script>
 <?php endif; ?>

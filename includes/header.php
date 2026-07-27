@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
     <title><?= isset($pageTitle) ? htmlspecialchars((string)$pageTitle) . ' - ' : '' ?><?= htmlspecialchars(SITE_TITLE) ?></title>
     
     <!-- Favicon -->
@@ -19,8 +20,11 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
+    <!-- Appearance preferences are applied before the stylesheet to prevent flashing. -->
+    <script src="<?= BASE_URL ?>/assets/js/theme.js?v=1.0"></script>
+
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=2.0">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=3.0">
 </head>
 <body class="bg-light">
     <!-- Toast Container -->

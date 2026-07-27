@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
     <title>Change Password - CRM Lead Tracker</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -57,11 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="<?= BASE_URL ?>/assets/js/theme.js?v=1.0"></script>
     <!-- Custom CSS -->
-    <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/style.css?v=3.0" rel="stylesheet">
     <style>
         body {
-            background-color: #f8f9fc;
+            background-color: var(--bg-body);
+            background-image: var(--auth-gradient);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -76,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .brand-logo {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, #184E77, #1A759F);
+            background: linear-gradient(135deg, var(--primary-100), var(--accent-100));
             color: white;
             border-radius: 10px;
             display: flex;
@@ -88,6 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+    <?php
+    $appearanceClass = 'auth-appearance-controls';
+    include __DIR__ . '/includes/theme_controls.php';
+    unset($appearanceClass);
+    ?>
 
     <div class="card border-0 login-card p-4">
         <div class="text-center mb-4">

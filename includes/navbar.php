@@ -7,6 +7,11 @@
         <h4 class="m-0 fw-semibold d-none d-md-block"><?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Dashboard' ?></h4>
 
         <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+            <?php
+            $appearanceClass = 'navbar-appearance';
+            include __DIR__ . '/theme_controls.php';
+            unset($appearanceClass);
+            ?>
 
             <!-- Notifications Bell -->
             <?php

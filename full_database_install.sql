@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Local bootstrap account. The application blocks this password outside the
--- local environment; change it immediately after the first local login.
+-- Local reviewer account. The application blocks this password outside the
+-- local environment.
 INSERT IGNORE INTO `users` (`name`, `email`, `password`) VALUES
-('Admin User', 'admin@example.com', '$2y$10$X88SwKF53asuFXoufrmpY.TktlMmtP4kYubeFdjhmxLcbAXorCxm.');
+('Admin User', 'admin@example.com', '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS');
 
 CREATE TABLE IF NOT EXISTS `leads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -174,6 +174,13 @@ ALTER TABLE `users`
     ADD COLUMN IF NOT EXISTS `requires_password_change` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Force password change on next login' AFTER `password`,
     ADD COLUMN IF NOT EXISTS `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last profile update timestamp' AFTER `created_at`;
 
+-- Restricted account for public project reviews. It intentionally has the
+-- sales representative role and can only access its own assigned leads.
+INSERT IGNORE INTO `users`
+    (`name`, `email`, `password`, `role`, `status`, `requires_password_change`)
+VALUES
+    ('Project Reviewer', 'reviewer@example.com', '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS', 'sales_rep', 'active', 0);
+
 -- 2. Create `user_activities` table
 CREATE TABLE IF NOT EXISTS `user_activities` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -186,9 +193,9 @@ CREATE TABLE IF NOT EXISTS `user_activities` (
     CONSTRAINT `fk_ua_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Audit log for user actions';
 
--- Force the unchanged local bootstrap account to choose a new password.
+-- Keep the unchanged local reviewer account ready for local demonstrations.
 -- Re-running this installer does not affect an account whose password changed.
 UPDATE `users`
-SET `requires_password_change` = 1
+SET `requires_password_change` = 0
 WHERE `email` = 'admin@example.com'
-  AND `password` = '$2y$10$X88SwKF53asuFXoufrmpY.TktlMmtP4kYubeFdjhmxLcbAXorCxm.';
+  AND `password` = '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS';

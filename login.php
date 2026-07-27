@@ -27,7 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (
         !isLocalEnvironment()
         && strcasecmp($email, 'admin@example.com') === 0
-        && hash_equals('admin123', $password)
+        && (
+            hash_equals('admin123', $password)
+            || hash_equals('SecurePass2026!', $password)
+        )
     ) {
         $error = 'The local bootstrap password is disabled in production. Reset the administrator password before deployment.';
     } else {
@@ -81,6 +84,7 @@ $pageTitle = 'Login';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
     <title><?= $pageTitle ?> - <?= SITE_TITLE ?></title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/favicon.png">
@@ -90,10 +94,16 @@ $pageTitle = 'Login';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="<?= BASE_URL ?>/assets/js/theme.js?v=1.0"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=3.0">
 </head>
 <body class="auth-wrapper">
+    <?php
+    $appearanceClass = 'auth-appearance-controls';
+    include __DIR__ . '/includes/theme_controls.php';
+    unset($appearanceClass);
+    ?>
     <div class="auth-card card">
         <div class="text-center mb-4">
             <h1 class="h3 fw-bold text-primary mb-2"><i class="bi bi-hexagon-fill me-2"></i>Mini CRM</h1>
@@ -140,9 +150,9 @@ $pageTitle = 'Login';
         
 
         
-        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='admin@example.com'; document.getElementById('password').value='SecurePass2026!';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
+        <div class="mt-4 p-3 bg-light rounded border text-center small text-muted cursor-pointer" onclick="document.getElementById('email').value='reviewer@example.com'; document.getElementById('password').value='SecurePass2026!';" style="transition: background-color 0.2s;" onmouseover="this.classList.remove('bg-light'); this.classList.add('bg-white', 'shadow-sm');" onmouseout="this.classList.add('bg-light'); this.classList.remove('bg-white', 'shadow-sm');">
             <p class="mb-1 fw-semibold"><i class="bi bi-info-circle me-1"></i> Reviewer Demo (Click to auto-fill)</p>
-            <div>Email: <span class="fw-medium text-dark">admin@example.com</span></div>
+            <div>Email: <span class="fw-medium text-dark">reviewer@example.com</span></div>
             <div>Password: <span class="fw-medium text-dark">SecurePass2026!</span></div>
         </div>
     </div>
