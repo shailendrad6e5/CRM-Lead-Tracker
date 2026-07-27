@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Default password is 'admin123' (hashed)
-INSERT INTO `users` (`name`, `email`, `password`) VALUES
+INSERT IGNORE INTO `users` (`name`, `email`, `password`) VALUES
 ('Admin User', 'admin@example.com', 'admin123');
 
 CREATE TABLE IF NOT EXISTS `leads` (
@@ -33,6 +33,6 @@ CREATE TABLE IF NOT EXISTS `leads` (
   CONSTRAINT `fk_assigned_user` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `leads` (`name`, `company`, `email`, `phone`, `source`, `status`, `priority`, `assigned_to`, `notes`) VALUES
+INSERT IGNORE INTO `leads` (`name`, `company`, `email`, `phone`, `source`, `status`, `priority`, `assigned_to`, `notes`) VALUES
 ('John Doe', 'Acme Corp', 'john@acme.com', '123-456-7890', 'Website', 'New', 'High', 1, 'Initial contact from website.'),
 ('Jane Smith', 'Tech Solutions', 'jane@techsolutions.com', '098-765-4321', 'Referral', 'Contacted', 'Medium', 1, 'Looking for our CRM product.');
