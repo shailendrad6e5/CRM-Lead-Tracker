@@ -407,3 +407,9 @@ header, .navbar {
 .toast-body, .modal-body {
     padding: 20px !important;
 }
+
+/* 9. Follow-up Badges */
+.followup-completed { background-color: rgba(82, 182, 154, 0.15) !important; color: #3d8a74 !important; border: 1px solid rgba(82, 182, 154, 0.2); }
+.followup-today { background-color: rgba(253, 126, 20, 0.15) !important; color: #d96404 !important; border: 1px solid rgba(253, 126, 20, 0.2); }
+.followup-overdue { background-color: rgba(220, 53, 69, 0.15) !important; color: #dc3545 !important; border: 1px solid rgba(220, 53, 69, 0.2); }
+.followup-upcoming { background-color: rgba(22, 138, 173, 0.15) !important; color: #168AAD !important; border: 1px solid rgba(22, 138, 173, 0.2); }

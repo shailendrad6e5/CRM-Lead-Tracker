@@ -29,6 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_status'])) {
         logLeadActivity($pdo, $id, $_SESSION['user_id'], 'status_changed', "Status changed from {$oldStatus} to {$newStatus}");
         $_SESSION['success'] = "Lead marked as $newStatus.";
     }
+    }
+    header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
+    exit;
+}
+
+// ── Follow-up Quick Complete ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_followup'])) {
+    verifyCsrfToken();
+    $updateStmt = $pdo->prepare("UPDATE leads SET followup_status = 'Completed', completed_at = NOW() WHERE id = ? AND assigned_to = ?");
+    $updateStmt->execute([$id, $_SESSION['user_id']]);
+    logLeadActivity($pdo, $id, $_SESSION['user_id'], 'status_changed', "Follow-up marked as Completed");
+    $_SESSION['success'] = "Follow-up completed.";
     header("Location: " . BASE_URL . "/leads/view.php?id=" . $id);
     exit;
 }
@@ -152,21 +164,52 @@ include '../includes/header.php';
         <!-- Follow-up Card -->
         <?php if (!empty($lead['followup_date'])): ?>
         <?php
-            $today    = date('Y-m-d');
-            $fuDate   = $lead['followup_date'];
-            $isToday  = $fuDate === $today;
-            $isOverdue= $fuDate < $today;
-            $fuClass  = $isToday ? 'border-warning bg-warning bg-opacity-10' : ($isOverdue ? 'border-danger bg-danger bg-opacity-10' : 'border-info bg-info bg-opacity-10');
-            $fuIcon   = $isToday ? 'bi-alarm text-warning' : ($isOverdue ? 'bi-exclamation-circle text-danger' : 'bi-calendar-check text-info');
+            $fStatus = $lead['followup_status'] ?? 'Pending';
+            $fState  = computeFollowUpState($lead['followup_date'], $lead['followup_time'], $fStatus);
+            $fClass  = getFollowUpStateBadgeClass($fState);
+            $fIcon   = ($fState === 'Overdue') ? 'bi-exclamation-circle text-danger' : (($fState === 'Today') ? 'bi-alarm text-warning' : 'bi-calendar-check text-primary');
+            if ($fState === 'Completed') $fIcon = 'bi-check-circle text-success';
         ?>
-        <div class="card shadow-sm mb-4 border <?= $fuClass ?>">
+        <div class="card shadow-sm mb-4 border-0">
             <div class="card-body">
-                <h6 class="fw-semibold mb-2"><i class="bi <?= $fuIcon ?> me-2"></i>Follow-up
-                    <?= $isToday ? '<span class="badge bg-warning text-dark ms-1">Today</span>' : ($isOverdue ? '<span class="badge bg-danger ms-1">Overdue</span>' : '') ?>
-                </h6>
-                <p class="mb-1 fw-medium"><?= date('F j, Y', strtotime($fuDate)) ?></p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-semibold mb-0"><i class="bi <?= $fIcon ?> me-2"></i>Follow-up</h6>
+                    <span class="badge <?= $fClass ?>"><?= $fState ?></span>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="text-muted small fw-semibold text-uppercase d-block mb-1">Scheduled For</label>
+                    <p class="mb-0 fw-medium">
+                        <?= date('M j, Y', strtotime($lead['followup_date'])) ?>
+                        <?= !empty($lead['followup_time']) ? ' at ' . date('h:i A', strtotime($lead['followup_time'])) : '' ?>
+                    </p>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <label class="text-muted small fw-semibold text-uppercase d-block mb-1">Priority</label>
+                        <span class="badge <?= getPriorityBadgeClass($lead['followup_priority'] ?? 'Medium') ?>"><?= $lead['followup_priority'] ?? 'Medium' ?></span>
+                    </div>
+                    <?php if ($fStatus === 'Completed' && !empty($lead['completed_at'])): ?>
+                    <div class="text-end">
+                        <label class="text-muted small fw-semibold text-uppercase d-block mb-1">Completed On</label>
+                        <span class="small fw-medium"><?= date('M j, Y h:i A', strtotime($lead['completed_at'])) ?></span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
                 <?php if(!empty($lead['followup_notes'])): ?>
-                <p class="text-muted small mb-0"><?= htmlspecialchars($lead['followup_notes']) ?></p>
+                <div class="bg-light p-2 rounded mb-3">
+                    <p class="text-muted small mb-0"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($lead['followup_notes']) ?></p>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($fStatus !== 'Completed'): ?>
+                <form method="POST">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="complete_followup" value="1">
+                    <button type="submit" class="btn btn-success w-100 btn-sm fw-medium"><i class="bi bi-check2-all me-1"></i>Mark as Completed</button>
+                </form>
                 <?php endif; ?>
             </div>
         </div>

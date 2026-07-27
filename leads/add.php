@@ -18,8 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status      = $_POST['status'] ?? '';
     $priority    = $_POST['priority'] ?? '';
     $notes       = trim($_POST['notes'] ?? '');
-    $followup_date  = !empty($_POST['followup_date'])  ? $_POST['followup_date']  : null;
-    $followup_notes = trim($_POST['followup_notes'] ?? '');
+    $followup_date     = !empty($_POST['followup_date'])  ? $_POST['followup_date']  : null;
+    $followup_time     = !empty($_POST['followup_time'])  ? $_POST['followup_time']  : null;
+    $followup_priority = $_POST['followup_priority'] ?? 'Medium';
+    $followup_notes    = trim($_POST['followup_notes'] ?? '');
     $assigned_to = $_SESSION['user_id'];
 
     // Enum validation
@@ -36,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['error'] = "Invalid email format.";
     } else {
-        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, notes, followup_date, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $notes, $followup_date, $followup_notes])) {
+        $stmt = $pdo->prepare("INSERT INTO leads (name, company, email, phone, source, status, priority, assigned_to, notes, followup_date, followup_time, followup_priority, followup_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $assigned_to, $notes, $followup_date, $followup_time, $followup_priority, $followup_notes])) {
             $newId = $pdo->lastInsertId();
             logLeadActivity($pdo, $newId, $assigned_to, 'created', "Lead created: $name ($company)");
             $_SESSION['success'] = "Lead added successfully.";
@@ -152,14 +154,26 @@ include '../includes/header.php';
 
                     <h5 class="mb-4 text-primary border-bottom pb-2 mt-4"><i class="bi bi-calendar-check me-2"></i>Follow-up</h5>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="followup_date" class="form-label">Follow-up Date</label>
+                        <div class="col-md-4">
+                            <label for="followup_date" class="form-label">Date</label>
                             <input type="date" class="form-control" id="followup_date" name="followup_date">
                         </div>
-                        <div class="col-md-6">
-                            <label for="followup_notes" class="form-label">Follow-up Notes</label>
-                            <input type="text" class="form-control" id="followup_notes" name="followup_notes" placeholder="What to discuss?">
+                        <div class="col-md-4">
+                            <label for="followup_time" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="followup_time" name="followup_time">
                         </div>
+                        <div class="col-md-4">
+                            <label for="followup_priority" class="form-label">Priority</label>
+                            <select class="form-select" id="followup_priority" name="followup_priority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="followup_notes" class="form-label">Follow-up Notes</label>
+                        <input type="text" class="form-control" id="followup_notes" name="followup_notes" placeholder="What to discuss?">
                     </div>
 
                     <hr class="my-4">

@@ -56,6 +56,7 @@ $search   = trim($_GET['search']   ?? '');
 $fStatus  = $_GET['status']        ?? '';
 $fPriority= $_GET['priority']      ?? '';
 $fSource  = $_GET['source']        ?? '';
+$fFollowUp= $_GET['followup']      ?? '';
 $fDateFrom= $_GET['date_from']     ?? '';
 $fDateTo  = $_GET['date_to']       ?? '';
 
@@ -74,6 +75,17 @@ if (!empty($fPriority)) {
 if (!empty($fSource)) {
     $where   .= " AND source = ?";
     $params[] = $fSource;
+}
+if (!empty($fFollowUp)) {
+    if ($fFollowUp === 'Today') {
+        $where .= " AND followup_date = CURRENT_DATE() AND followup_status != 'Completed'";
+    } elseif ($fFollowUp === 'Overdue') {
+        $where .= " AND followup_date < CURRENT_DATE() AND followup_status != 'Completed'";
+    } elseif ($fFollowUp === 'Upcoming') {
+        $where .= " AND followup_date > CURRENT_DATE() AND followup_status != 'Completed'";
+    } elseif ($fFollowUp === 'Completed') {
+        $where .= " AND followup_status = 'Completed'";
+    }
 }
 if (!empty($fDateFrom)) {
     $where   .= " AND DATE(created_at) >= ?";
@@ -105,6 +117,7 @@ $filterParams = http_build_query(array_filter([
     'status'    => $fStatus,
     'priority'  => $fPriority,
     'source'    => $fSource,
+    'followup'  => $fFollowUp,
     'date_from' => $fDateFrom,
     'date_to'   => $fDateTo,
     'sort'      => $orderBy,
@@ -203,7 +216,17 @@ include '../includes/header.php';
                     <label class="form-label small fw-semibold mb-1">To Date</label>
                     <input type="date" name="date_to" class="form-control" value="<?= htmlspecialchars($fDateTo) ?>">
                 </div>
-                <div class="col-md-6 d-flex align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold mb-1">Follow-up</label>
+                    <select name="followup" class="form-select">
+                        <option value="">All Follow-ups</option>
+                        <option value="Overdue" <?= $fFollowUp==='Overdue'?'selected':'' ?>>Overdue</option>
+                        <option value="Today" <?= $fFollowUp==='Today'?'selected':'' ?>>Today</option>
+                        <option value="Upcoming" <?= $fFollowUp==='Upcoming'?'selected':'' ?>>Upcoming</option>
+                        <option value="Completed" <?= $fFollowUp==='Completed'?'selected':'' ?>>Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
                     <small class="text-muted"><?= $totalRecords ?> lead<?= $totalRecords!=1?'s':'' ?> found<?= !empty($filterParams) ? ' (filtered)' : '' ?></small>
                 </div>
             </div>
@@ -259,8 +282,14 @@ include '../includes/header.php';
                             </td>
                             <td>
                                 <a href="view.php?id=<?= $lead['id'] ?>" class="fw-semibold text-dark text-decoration-none d-block"><?= htmlspecialchars($lead['name']) ?></a>
-                                <?php if(!empty($lead['followup_date']) && $lead['followup_date'] <= date('Y-m-d')): ?>
-                                <span class="badge bg-warning text-dark" style="font-size:9px;"><i class="bi bi-alarm me-1"></i>Follow-up <?= $lead['followup_date'] === date('Y-m-d') ? 'Today' : 'Overdue' ?></span>
+                                <?php
+                                $fStatus = $lead['followup_status'] ?? 'Pending';
+                                $fState  = computeFollowUpState($lead['followup_date'], $lead['followup_time'], $fStatus);
+                                if ($fState !== 'None' && $fState !== 'Completed'):
+                                    $fClass = getFollowUpStateBadgeClass($fState);
+                                    $fText  = $fState === 'Overdue' ? 'Overdue' : ($fState === 'Today' ? 'Today' : 'Upcoming');
+                                ?>
+                                <span class="badge <?= $fClass ?>" style="font-size:10px;"><i class="bi bi-calendar-check me-1"></i><?= $fText ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="d-none d-md-table-cell">

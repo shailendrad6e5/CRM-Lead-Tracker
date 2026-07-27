@@ -34,8 +34,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status         = $_POST['status'] ?? '';
     $priority       = $_POST['priority'] ?? '';
     $notes          = trim($_POST['notes'] ?? '');
-    $followup_date  = !empty($_POST['followup_date'])  ? $_POST['followup_date']  : null;
-    $followup_notes = trim($_POST['followup_notes'] ?? '');
+    $followup_date     = !empty($_POST['followup_date'])  ? $_POST['followup_date']  : null;
+    $followup_time     = !empty($_POST['followup_time'])  ? $_POST['followup_time']  : null;
+    $followup_status   = $_POST['followup_status'] ?? $lead['followup_status'];
+    $followup_priority = $_POST['followup_priority'] ?? $lead['followup_priority'];
+    $followup_notes    = trim($_POST['followup_notes'] ?? '');
+
+    // If status just changed to Completed, set completed_at
+    $completed_at = $lead['completed_at'];
+    if ($followup_status === 'Completed' && $lead['followup_status'] !== 'Completed') {
+        $completed_at = date('Y-m-d H:i:s');
+    } elseif ($followup_status !== 'Completed') {
+        $completed_at = null;
+    }
 
     // Enum validation
     $valid_statuses  = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
@@ -51,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['error'] = "Invalid email format.";
     } else {
-        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=?, followup_date=?, followup_notes=? WHERE id=? AND assigned_to=?");
-        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $followup_date, $followup_notes, $id, $_SESSION['user_id']])) {
+        $stmt = $pdo->prepare("UPDATE leads SET name=?, company=?, email=?, phone=?, source=?, status=?, priority=?, notes=?, followup_date=?, followup_time=?, followup_status=?, followup_priority=?, followup_notes=?, completed_at=? WHERE id=? AND assigned_to=?");
+        if ($stmt->execute([$name, $company, $email, $phone, $source, $status, $priority, $notes, $followup_date, $followup_time, $followup_status, $followup_priority, $followup_notes, $completed_at, $id, $_SESSION['user_id']])) {
             // Build activity description
             $changes = [];
             if ($lead['status']   !== $status)   $changes[] = "Status changed from {$lead['status']} to {$status}";
@@ -181,14 +192,42 @@ include '../includes/header.php';
 
                     <h5 class="mb-4 text-primary border-bottom pb-2 mt-4"><i class="bi bi-calendar-check me-2"></i>Follow-up</h5>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="followup_date" class="form-label">Follow-up Date</label>
+                        <div class="col-md-3">
+                            <label for="followup_date" class="form-label">Date</label>
                             <input type="date" class="form-control" id="followup_date" name="followup_date" value="<?= htmlspecialchars($lead['followup_date'] ?? '') ?>">
                         </div>
-                        <div class="col-md-6">
-                            <label for="followup_notes" class="form-label">Follow-up Notes</label>
-                            <input type="text" class="form-control" id="followup_notes" name="followup_notes" value="<?= htmlspecialchars($lead['followup_notes'] ?? '') ?>" placeholder="What to discuss?">
+                        <div class="col-md-3">
+                            <label for="followup_time" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="followup_time" name="followup_time" value="<?= htmlspecialchars($lead['followup_time'] ?? '') ?>">
                         </div>
+                        <div class="col-md-3">
+                            <label for="followup_priority" class="form-label">Priority</label>
+                            <select class="form-select" id="followup_priority" name="followup_priority">
+                                <?php
+                                $f_priorities = ['Low', 'Medium', 'High'];
+                                foreach ($f_priorities as $fp) {
+                                    $selected = ($lead['followup_priority'] ?? 'Medium') === $fp ? 'selected' : '';
+                                    echo "<option value=\"$fp\" $selected>$fp</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="followup_status" class="form-label">Status</label>
+                            <select class="form-select" id="followup_status" name="followup_status">
+                                <?php
+                                $f_statuses = ['Pending', 'Completed', 'Missed'];
+                                foreach ($f_statuses as $fs) {
+                                    $selected = ($lead['followup_status'] ?? 'Pending') === $fs ? 'selected' : '';
+                                    echo "<option value=\"$fs\" $selected>$fs</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="followup_notes" class="form-label">Follow-up Notes</label>
+                        <input type="text" class="form-control" id="followup_notes" name="followup_notes" value="<?= htmlspecialchars($lead['followup_notes'] ?? '') ?>" placeholder="What to discuss?">
                     </div>
 
                     <hr class="my-4">

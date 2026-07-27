@@ -25,6 +25,11 @@
             </a>
         </li>
         <li class="nav-item">
+            <a href="<?= BASE_URL ?>/followups.php" class="nav-link px-3 py-2 rounded <?= ($current_page == 'followups.php') ? 'active bg-primary text-white' : 'text-dark' ?>">
+                <i class="bi bi-calendar-check me-2"></i> Follow-ups
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="<?= BASE_URL ?>/leads/add.php" class="nav-link px-3 py-2 rounded <?= ($in_leads && $current_page == 'add.php') ? 'active bg-primary text-white' : 'text-dark' ?>">
                 <i class="bi bi-person-plus me-2"></i> Add Lead
             </a>

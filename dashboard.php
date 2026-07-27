@@ -45,7 +45,7 @@ $monthCounts   = array_column($monthlyData, 'count');
 // ── Today's follow-ups ─────────────────────────────────────────────────────
 $todayFollowups = [];
 try {
-    $fStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? AND followup_date = CURDATE() ORDER BY name");
+    $fStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? AND followup_date = CURDATE() AND followup_status != 'Completed' ORDER BY name");
     $fStmt->execute([$user_id]);
     $todayFollowups = $fStmt->fetchAll();
 } catch (Exception $e) { /* table may not exist yet */ }
@@ -53,7 +53,7 @@ try {
 // ── Overdue follow-ups ─────────────────────────────────────────────────────
 $overdueFollowups = [];
 try {
-    $oStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? AND followup_date < CURDATE() AND status NOT IN ('Won','Lost') ORDER BY followup_date ASC LIMIT 5");
+    $oStmt = $pdo->prepare("SELECT * FROM leads WHERE assigned_to = ? AND followup_date < CURDATE() AND followup_status != 'Completed' AND status NOT IN ('Won','Lost') ORDER BY followup_date ASC LIMIT 5");
     $oStmt->execute([$user_id]);
     $overdueFollowups = $oStmt->fetchAll();
 } catch (Exception $e) { /* table may not exist yet */ }
@@ -250,7 +250,7 @@ include 'includes/header.php';
 
         <!-- Today's Follow-ups -->
         <?php if (!empty($todayFollowups) || !empty($overdueFollowups)): ?>
-        <div class="card p-0">
+        <div class="card p-0 mb-4">
             <div class="card-header">
                 <h5 class="mb-0 fs-6 fw-semibold"><i class="bi bi-calendar-check me-2 text-warning"></i>Follow-ups</h5>
             </div>
@@ -263,7 +263,10 @@ include 'includes/header.php';
                         <i class="bi bi-alarm text-warning"></i>
                         <div class="flex-grow-1 overflow-hidden">
                             <a href="<?= BASE_URL ?>/leads/view.php?id=<?= $fl['id'] ?>" class="text-dark text-decoration-none fw-medium small d-block text-truncate"><?= htmlspecialchars($fl['name']) ?></a>
-                            <div class="text-muted" style="font-size:11px;"><?= htmlspecialchars($fl['followup_notes'] ?? 'Follow-up today') ?></div>
+                            <div class="text-muted d-flex justify-content-between align-items-center" style="font-size:11px;">
+                                <span class="text-truncate me-2"><?= htmlspecialchars($fl['followup_notes'] ?? 'Follow-up today') ?></span>
+                                <?= !empty($fl['followup_time']) ? '<span class="fw-semibold text-nowrap">'.date('h:i A', strtotime($fl['followup_time'])).'</span>' : '' ?>
+                            </div>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -277,12 +280,18 @@ include 'includes/header.php';
                         <i class="bi bi-exclamation-circle text-danger"></i>
                         <div class="flex-grow-1 overflow-hidden">
                             <a href="<?= BASE_URL ?>/leads/view.php?id=<?= $ov['id'] ?>" class="text-dark text-decoration-none fw-medium small d-block text-truncate"><?= htmlspecialchars($ov['name']) ?></a>
-                            <div class="text-danger" style="font-size:11px;"><?= date('M d', strtotime($ov['followup_date'])) ?></div>
+                            <div class="text-danger d-flex justify-content-between align-items-center" style="font-size:11px;">
+                                <span><?= date('M d', strtotime($ov['followup_date'])) ?></span>
+                                <span class="badge <?= getPriorityBadgeClass($ov['followup_priority'] ?? 'Medium') ?>" style="font-size:9px; padding:3px 5px;"><?= $ov['followup_priority'] ?? 'Medium' ?></span>
+                            </div>
                         </div>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
+                <div class="card-footer bg-white border-top text-center p-2">
+                    <a href="<?= BASE_URL ?>/followups.php" class="btn btn-sm btn-link text-decoration-none">View All Follow-ups</a>
+                </div>
             </div>
         </div>
         <?php endif; ?>

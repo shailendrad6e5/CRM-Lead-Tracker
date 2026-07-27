@@ -73,4 +73,48 @@ function logLeadActivity(PDO $pdo, int $lead_id, int $user_id, string $action, s
         // Silently fail — activity logging should never break core functionality
     }
 }
+/**
+ * Computes the follow-up state (Completed, Today, Overdue, Upcoming, None)
+ */
+function computeFollowUpState(?string $date, ?string $time, string $status): string {
+    if ($status === 'Completed') return 'Completed';
+    if (empty($date)) return 'None';
+    
+    $targetStr = $date;
+    if (!empty($time)) {
+        $targetStr .= ' ' . $time;
+    } else {
+        $targetStr .= ' 23:59:59';
+    }
+    
+    $targetTime = strtotime($targetStr);
+    $now = time();
+    $todayStart = strtotime('today');
+    $todayEnd = strtotime('tomorrow') - 1;
+    
+    if ($targetTime < $todayStart) {
+        return 'Overdue';
+    } elseif ($targetTime >= $todayStart && $targetTime <= $todayEnd) {
+        if (!empty($time) && $targetTime < $now) {
+             return 'Overdue'; 
+        }
+        return 'Today';
+    } else {
+        return 'Upcoming';
+    }
+}
+
+/**
+ * Returns the CSS class for Follow-up state badges
+ */
+function getFollowUpStateBadgeClass(string $state): string {
+    $map = [
+        'Completed' => 'followup-completed',
+        'Today'     => 'followup-today',
+        'Overdue'   => 'followup-overdue',
+        'Upcoming'  => 'followup-upcoming',
+        'None'      => 'bg-secondary text-white'
+    ];
+    return $map[$state] ?? 'bg-secondary text-white';
+}
 ?>

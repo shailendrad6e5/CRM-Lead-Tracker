@@ -9,7 +9,7 @@ if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_
     $host = 'localhost';
     $db   = 'crm_lead_tracker';
     $user = 'root';
-    $pass = '';
+    $pass = 'MyNewPass123';
 } else {
     // InfinityFree Live Server Credentials
     $host = 'sql101.infinityfree.com';
