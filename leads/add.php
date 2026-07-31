@@ -250,7 +250,6 @@ include '../includes/header.php';
     <div class="col-lg-4 d-none d-lg-block">
         <div class="card shadow-sm text-center py-5">
             <div class="card-body">
-                <img src="<?= BASE_URL ?>/assets/images/add_illustration.svg" alt="" class="img-fluid mb-4 px-4" onerror="this.style.display='none'">
                 <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                     <i class="bi bi-person-plus text-primary display-4"></i>
                 </div>

@@ -514,7 +514,7 @@ header, .navbar {
 }
 .user-status-active   { background-color: #28a745; box-shadow: 0 0 0 2px rgba(40,167,69,0.2); }
 .user-status-inactive { background-color: #adb5bd; }
-.user-status-away     { background-color: #fd7e14; box-shadow: 0 0 0 2px rgba(253,126,20,0.2); }
+.user-status-suspended { background-color: #dc3545; box-shadow: 0 0 0 2px rgba(220,53,69,0.2); }
 
 /* ═══════════════════════════════════════════════════
    12. Avatar Styles

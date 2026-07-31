@@ -281,7 +281,7 @@ include '../includes/header.php';
                         </div>
                         <div class="col-md-3">
                             <label for="followup_time" class="form-label">Time</label>
-                            <input type="time" class="form-control" id="followup_time" name="followup_time" value="<?= htmlspecialchars($lead['followup_time'] ?? '') ?>">
+                            <input type="time" class="form-control" id="followup_time" name="followup_time" value="<?= htmlspecialchars(substr((string)($lead['followup_time'] ?? ''), 0, 5)) ?>">
                         </div>
                         <div class="col-md-3">
                             <label for="followup_priority" class="form-label">Priority</label>

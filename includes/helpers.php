@@ -68,8 +68,13 @@ function isValidDateValue(string $value): bool {
 }
 
 function isValidTimeValue(string $value): bool {
-    $time = DateTime::createFromFormat('!H:i', $value);
-    return $time !== false && $time->format('H:i') === $value;
+    foreach (['!H:i' => 'H:i', '!H:i:s' => 'H:i:s'] as $format => $outputFormat) {
+        $time = DateTime::createFromFormat($format, $value);
+        if ($time !== false && $time->format($outputFormat) === $value) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -160,9 +165,9 @@ function getRoleLabel(string $role): string {
  */
 function getUserStatusClass(string $status): string {
     $map = [
-        'active'   => 'user-status-active',
-        'inactive' => 'user-status-inactive',
-        'away'     => 'user-status-away',
+        'active'    => 'user-status-active',
+        'inactive'  => 'user-status-inactive',
+        'suspended' => 'user-status-suspended',
     ];
     return $map[$status] ?? 'bg-secondary';
 }

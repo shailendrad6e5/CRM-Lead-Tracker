@@ -37,7 +37,10 @@ if (!empty($search)) {
 }
 
 $fPriority = $_GET['priority'] ?? '';
-if (!empty($fPriority)) {
+if (!in_array($fPriority, ['Low', 'Medium', 'High'], true)) {
+    $fPriority = '';
+}
+if ($fPriority !== '') {
     $where .= " AND followup_priority = ?";
     $params[] = $fPriority;
 }
@@ -76,7 +79,7 @@ function renderFollowUpCard($lead, $isOverdue = false) {
     $name = htmlspecialchars($lead['name']);
     $company = htmlspecialchars($lead['company'] ?? '');
     $notes = htmlspecialchars($lead['followup_notes'] ?? '');
-    $priority = $lead['followup_priority'] ?? 'Medium';
+    $priority = htmlspecialchars($lead['followup_priority'] ?? 'Medium');
 
     $notesHtml = !empty($notes) ? "<p class='small text-muted mb-3 p-2 bg-light rounded'><i class='bi bi-info-circle me-1'></i>{$notes}</p>" : "<div class='mb-3'></div>";
 

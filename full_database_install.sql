@@ -11,11 +11,6 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Local reviewer account. The application blocks this password outside the
--- local environment.
-INSERT IGNORE INTO `users` (`name`, `email`, `password`) VALUES
-('Admin User', 'admin@example.com', '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS');
-
 CREATE TABLE IF NOT EXISTS `leads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
@@ -186,9 +181,17 @@ CREATE TABLE IF NOT EXISTS `user_activities` (
     CONSTRAINT `fk_ua_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Audit log for user actions';
 
--- Keep the unchanged local reviewer account ready for local demonstrations.
--- Re-running this installer does not affect an account whose password changed.
-UPDATE `users`
-SET `requires_password_change` = 0
-WHERE `email` = 'admin@example.com'
-  AND `password` = '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS';
+-- College-project demo accounts shown on the login page.
+-- Re-importing this submission installer restores their documented credentials.
+INSERT INTO `users`
+    (`name`, `email`, `password`, `role`, `status`, `requires_password_change`)
+VALUES
+    ('Admin User', 'admin@example.com', '$2y$10$WOsb9oes4tsoJZ4WmcRqkuDzEhLBcRPfVS6xBeFQb2kixAZ8MBVMS', 'admin', 'active', 0),
+    ('Manager User', 'manager@example.com', '$2y$10$5xgG8e0cuE/GwQV/cDHOGe9BNniuquO/Mte.3RFTcDJvZdkbd3YAq', 'manager', 'active', 0),
+    ('Sales Person 1', 'saleperson1@example.com', '$2y$10$x70GzfiOmC7nWgs.3C2ub.EAj3H80e54MpeDyzUZVjKLmjx5rJIeG', 'sales_rep', 'active', 0)
+ON DUPLICATE KEY UPDATE
+    `name` = VALUES(`name`),
+    `password` = VALUES(`password`),
+    `role` = VALUES(`role`),
+    `status` = 'active',
+    `requires_password_change` = 0;

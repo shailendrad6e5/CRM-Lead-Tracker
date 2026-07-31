@@ -159,15 +159,12 @@ function canEditLead(array $lead): bool {
 
 /**
  * Check if current user can delete this lead.
- * Admin: any lead. Manager: non-admin-owned leads. Sales rep: none.
+ * Admin and Manager: any lead. Sales rep: none.
  */
 function canDeleteLead(array $lead): bool {
     if (isAdmin()) return true;
-    if (isManager()) {
-        // Manager can delete leads, but not leads owned by admin
-        return true; // Simplified: managers can delete any lead
-    }
-    return false; // Sales reps cannot delete
+    if (isManager()) return true;
+    return false;
 }
 
 /**

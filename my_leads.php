@@ -45,6 +45,14 @@ $stmt = $pdo->prepare("SELECT l.* FROM leads l WHERE $where ORDER BY $orderBy $o
 $stmt->execute($params);
 $leads = $stmt->fetchAll();
 
+$filterParams = http_build_query(array_filter([
+    'search'   => $search,
+    'status'   => $fStatus,
+    'priority' => $fPriority,
+    'sort'     => $orderBy !== 'created_at' ? $orderBy : '',
+    'dir'      => strtolower($orderDir) !== 'desc' ? strtolower($orderDir) : '',
+]));
+
 // Quick stats for this user
 $statsStmt = $pdo->prepare("SELECT
     COUNT(*) as total,
@@ -194,11 +202,11 @@ include 'includes/header.php';
                 <small class="text-muted"><?= $totalRecords ?> lead<?= $totalRecords!==1?'s':'' ?></small>
                 <nav>
                     <ul class="pagination mb-0 pagination-sm">
-                        <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="?page=<?= $page-1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($fStatus) ?>">«</a></li>
+                        <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="?<?= $filterParams ? htmlspecialchars($filterParams) . '&amp;' : '' ?>page=<?= max(1, $page-1) ?>">«</a></li>
                         <?php for ($i=max(1,$page-2);$i<=min($totalPages,$page+2);$i++): ?>
-                        <li class="page-item <?= $page==$i?'active':'' ?>"><a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($fStatus) ?>"><?= $i ?></a></li>
+                        <li class="page-item <?= $page==$i?'active':'' ?>"><a class="page-link" href="?<?= $filterParams ? htmlspecialchars($filterParams) . '&amp;' : '' ?>page=<?= $i ?>"><?= $i ?></a></li>
                         <?php endfor; ?>
-                        <li class="page-item <?= $page>=$totalPages?'disabled':'' ?>"><a class="page-link" href="?page=<?= $page+1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($fStatus) ?>">»</a></li>
+                        <li class="page-item <?= $page>=$totalPages?'disabled':'' ?>"><a class="page-link" href="?<?= $filterParams ? htmlspecialchars($filterParams) . '&amp;' : '' ?>page=<?= min($totalPages, $page+1) ?>">»</a></li>
                     </ul>
                 </nav>
             </div>

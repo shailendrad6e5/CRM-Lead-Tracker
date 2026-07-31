@@ -155,6 +155,18 @@ $fDateFrom= $_GET['date_from']     ?? '';
 $fDateTo  = $_GET['date_to']       ?? '';
 $fAssigned= (int)($_GET['assigned_to'] ?? 0);
 
+$validStatuses = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+$validPriorities = ['Low', 'Medium', 'High'];
+$validSources = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+$validFollowUps = ['Today', 'Overdue', 'Upcoming', 'Completed'];
+
+if (!in_array($fStatus, $validStatuses, true)) $fStatus = '';
+if (!in_array($fPriority, $validPriorities, true)) $fPriority = '';
+if (!in_array($fSource, $validSources, true)) $fSource = '';
+if (!in_array($fFollowUp, $validFollowUps, true)) $fFollowUp = '';
+if ($fDateFrom !== '' && !isValidDateValue($fDateFrom)) $fDateFrom = '';
+if ($fDateTo !== '' && !isValidDateValue($fDateTo)) $fDateTo = '';
+
 if (!empty($search)) {
     $where   .= " AND (l.name LIKE ? OR l.company LIKE ? OR l.email LIKE ? OR l.phone LIKE ?)";
     $params   = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%"]);
@@ -197,9 +209,9 @@ if (!empty($fDateTo)) {
 
 // Whitelist sort columns
 $allowedSorts = ['created_at', 'name', 'company', 'status', 'priority'];
-$orderBy  = in_array($_GET['sort'] ?? '', $allowedSorts) ? 'l.'.$_GET['sort'] : 'l.created_at';
+$sortKey  = in_array($_GET['sort'] ?? '', $allowedSorts, true) ? $_GET['sort'] : 'created_at';
+$orderBy  = 'l.' . $sortKey;
 $orderDir = (strtolower($_GET['dir'] ?? '') === 'asc') ? 'ASC' : 'DESC';
-$nextDir  = ($orderDir === 'ASC') ? 'desc' : 'asc';
 
 // Rows per page
 $allowedLimits = [10, 25, 50, 100];
@@ -210,8 +222,9 @@ $limit = in_array($limitRaw, $allowedLimits) ? $limitRaw : 10;
 $page   = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($page - 1) * $limit;
 
-// Build filter query string for pagination links
-$filterParams = http_build_query(array_filter([
+// Build query strings. Sorting links use the base filters so sort/dir are not
+// duplicated; pagination and CSV export preserve the current sort.
+$baseFilterValues = [
     'search'    => $search,
     'status'    => $fStatus,
     'priority'  => $fPriority,
@@ -220,10 +233,13 @@ $filterParams = http_build_query(array_filter([
     'date_from' => $fDateFrom,
     'date_to'   => $fDateTo,
     'assigned_to' => $fAssigned ?: '',
-    'sort'      => $orderBy,
-    'dir'       => strtolower($orderDir),
     'per_page'  => $limit !== 10 ? $limit : '',
-]));
+];
+$baseFilterParams = http_build_query(array_filter($baseFilterValues));
+$filterParams = http_build_query(array_filter(array_merge($baseFilterValues, [
+    'sort'      => $sortKey,
+    'dir'       => strtolower($orderDir),
+])));
 
 // Total count
 $countStmt = $pdo->prepare("SELECT COUNT(*) FROM leads l WHERE $where");
@@ -384,14 +400,14 @@ include '../includes/header.php';
                             $qs = $filterParams ? $filterParams . '&' : '';
                             return "<th class=\"{$extraClass}\"><a href=\"?{$qs}sort={$col}&dir={$dir}\" class=\"text-decoration-none text-dark fw-semibold\">{$label} <i class=\"bi {$icon} small ms-1\"></i></a></th>";
                         }
-                        echo sortLink('name',       'Name',     $orderBy, $orderDir, $filterParams);
-                        echo sortLink('company',    'Company',  $orderBy, $orderDir, $filterParams, 'd-none d-md-table-cell');
+                        echo sortLink('name',       'Name',     $sortKey, $orderDir, $baseFilterParams);
+                        echo sortLink('company',    'Company',  $sortKey, $orderDir, $baseFilterParams, 'd-none d-md-table-cell');
                         ?>
                         <th>Contact</th>
                         <?php
-                        echo sortLink('status',   'Status',   $orderBy, $orderDir, $filterParams);
-                        echo sortLink('priority', 'Priority', $orderBy, $orderDir, $filterParams, 'd-none d-lg-table-cell');
-                        echo sortLink('created_at','Date',    $orderBy, $orderDir, $filterParams, 'd-none d-md-table-cell');
+                        echo sortLink('status',   'Status',   $sortKey, $orderDir, $baseFilterParams);
+                        echo sortLink('priority', 'Priority', $sortKey, $orderDir, $baseFilterParams, 'd-none d-lg-table-cell');
+                        echo sortLink('created_at','Date',    $sortKey, $orderDir, $baseFilterParams, 'd-none d-md-table-cell');
                         ?>
                         <th class="text-end">Actions</th>
                     </tr>

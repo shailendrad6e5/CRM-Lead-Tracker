@@ -20,8 +20,22 @@ $search    = trim($_GET['search']    ?? '');
 $fStatus   = $_GET['status']         ?? '';
 $fPriority = $_GET['priority']       ?? '';
 $fSource   = $_GET['source']         ?? '';
+$fFollowUp = $_GET['followup']       ?? '';
 $fDateFrom = $_GET['date_from']      ?? '';
 $fDateTo   = $_GET['date_to']        ?? '';
+$fAssigned = (int)($_GET['assigned_to'] ?? 0);
+
+$validStatuses = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
+$validPriorities = ['Low', 'Medium', 'High'];
+$validSources = ['Website', 'Referral', 'Cold Call', 'Email Campaign', 'Other'];
+$validFollowUps = ['Today', 'Overdue', 'Upcoming', 'Completed'];
+
+if (!in_array($fStatus, $validStatuses, true)) $fStatus = '';
+if (!in_array($fPriority, $validPriorities, true)) $fPriority = '';
+if (!in_array($fSource, $validSources, true)) $fSource = '';
+if (!in_array($fFollowUp, $validFollowUps, true)) $fFollowUp = '';
+if ($fDateFrom !== '' && !isValidDateValue($fDateFrom)) $fDateFrom = '';
+if ($fDateTo !== '' && !isValidDateValue($fDateTo)) $fDateTo = '';
 
 if (!empty($search)) {
     $where   .= " AND (name LIKE ? OR company LIKE ? OR email LIKE ? OR phone LIKE ?)";
@@ -30,6 +44,19 @@ if (!empty($search)) {
 if (!empty($fStatus))   { $where .= " AND status = ?";               $params[] = $fStatus;   }
 if (!empty($fPriority)) { $where .= " AND priority = ?";             $params[] = $fPriority; }
 if (!empty($fSource))   { $where .= " AND source = ?";               $params[] = $fSource;   }
+if ($fAssigned > 0 && canAssignLeads()) {
+    $where .= " AND assigned_to = ?";
+    $params[] = $fAssigned;
+}
+if ($fFollowUp === 'Today') {
+    $where .= " AND followup_date = CURRENT_DATE() AND COALESCE(followup_status, 'Pending') != 'Completed'";
+} elseif ($fFollowUp === 'Overdue') {
+    $where .= " AND followup_date < CURRENT_DATE() AND COALESCE(followup_status, 'Pending') != 'Completed'";
+} elseif ($fFollowUp === 'Upcoming') {
+    $where .= " AND followup_date > CURRENT_DATE() AND COALESCE(followup_status, 'Pending') != 'Completed'";
+} elseif ($fFollowUp === 'Completed') {
+    $where .= " AND followup_status = 'Completed'";
+}
 if (!empty($fDateFrom)) { $where .= " AND DATE(created_at) >= ?";    $params[] = $fDateFrom; }
 if (!empty($fDateTo))   { $where .= " AND DATE(created_at) <= ?";    $params[] = $fDateTo;   }
 

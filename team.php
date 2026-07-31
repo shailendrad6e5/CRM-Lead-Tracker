@@ -309,7 +309,7 @@ function deleteUser(userId, name) {
 }
 
 function resetPassword(userId, name) {
-    const newPass = prompt('Set new password for "' + name + '" (min 6 characters):');
+    const newPass = prompt('Set new password for "' + name + '" (minimum 8 characters):');
     if (!newPass) return;
     if (newPass.length < 8) { alert('Password must be at least 8 characters.'); return; }
     document.getElementById('actionType').value   = 'reset_password';
